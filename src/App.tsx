@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import Index from "./pages/Index";
+import TransactionsPage from "./pages/transactions/TransactionsPage";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +41,7 @@ const App = () => (
             path="/transactions"
             element={
               <LayoutRoute>
-                <div>Transactions Content</div>
+                <TransactionsPage />
               </LayoutRoute>
             }
           />
