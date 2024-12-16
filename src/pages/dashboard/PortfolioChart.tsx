@@ -6,7 +6,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Area, AreaChart, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, XAxis, YAxis, Tooltip } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function PortfolioChart() {
@@ -51,6 +51,20 @@ export function PortfolioChart() {
     },
   };
 
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 border rounded-lg shadow-lg">
+          <p className="text-sm text-gray-600">{format(new Date(label), "MMM dd, yyyy")}</p>
+          <p className="text-lg font-semibold text-green-500">
+            ${payload[0].value.toLocaleString()}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="w-full h-[400px] bg-white rounded-lg p-4 border">
       <h2 className="text-xl font-semibold mb-4">Portfolio Evolution</h2>
@@ -67,9 +81,7 @@ export function PortfolioChart() {
             tickFormatter={(value) => format(new Date(value), "MMM dd")}
           />
           <YAxis />
-          <ChartTooltip>
-            <ChartTooltipContent />
-          </ChartTooltip>
+          <Tooltip content={<CustomTooltip />} />
           <Area
             type="monotone"
             dataKey="value"
