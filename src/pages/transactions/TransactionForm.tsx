@@ -5,12 +5,15 @@ import { Form } from "@/components/ui/form";
 import { toast } from "sonner";
 import { TransactionFormFields } from "./TransactionFormFields";
 import { TransactionFormValues, transactionSchema } from "./schema";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface TransactionFormProps {
   onSuccess: () => void;
 }
 
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
+  const queryClient = useQueryClient();
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -27,11 +30,27 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
   const onSubmit = async (data: TransactionFormValues) => {
     try {
-      console.log("Transaction data:", data);
-      // TODO: Implement transaction submission
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast.error("Vous devez être connecté pour ajouter une transaction");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("transactions")
+        .insert({
+          ...data,
+          user_id: user.user.id,
+        });
+
+      if (error) throw error;
+
       toast.success("Transaction ajoutée avec succès");
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      form.reset();
       onSuccess();
     } catch (error) {
+      console.error("Error adding transaction:", error);
       toast.error("Erreur lors de l'ajout de la transaction");
     }
   };
