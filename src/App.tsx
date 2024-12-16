@@ -6,11 +6,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import Index from "./pages/Index";
 import TransactionsPage from "./pages/transactions/TransactionsPage";
+import DashboardPage from "./pages/dashboard/DashboardPage";
 
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  // Add authentication logic here
   const isAuthenticated = true;
   return isAuthenticated ? children : <Navigate to="/" />;
 };
@@ -33,7 +33,7 @@ const App = () => (
             path="/dashboard"
             element={
               <LayoutRoute>
-                <div>Dashboard Content</div>
+                <DashboardPage />
               </LayoutRoute>
             }
           />
