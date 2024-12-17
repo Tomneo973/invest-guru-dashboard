@@ -28,7 +28,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     },
   });
 
-  const onSubmit = async (data: TransactionFormValues) => {
+  const onSubmit = async (values: TransactionFormValues) => {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) {
@@ -36,12 +36,22 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         return;
       }
 
+      // Ensure all required fields are present and correctly typed
+      const transaction = {
+        user_id: user.user.id,
+        type: values.type,
+        symbol: values.symbol,
+        shares: values.shares,
+        price: values.price,
+        date: values.date,
+        platform: values.platform,
+        currency: values.currency,
+        sector: values.sector,
+      };
+
       const { error } = await supabase
         .from("transactions")
-        .insert({
-          ...data,
-          user_id: user.user.id,
-        });
+        .insert(transaction);
 
       if (error) throw error;
 
