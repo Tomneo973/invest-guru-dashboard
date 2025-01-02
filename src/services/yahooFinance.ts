@@ -11,19 +11,29 @@ export async function getStockPrice(symbol: string): Promise<StockData> {
       body: { symbol }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error(`Error fetching stock price for ${symbol}:`, error);
+      throw error;
+    }
 
     if (!data || !data.currentPrice) {
-      throw new Error('Invalid response from stock price service');
+      console.warn(`No price data available for ${symbol}`);
+      return {
+        currentPrice: 0,
+        currency: 'USD'
+      };
     }
 
     return {
       currentPrice: data.currentPrice,
-      currency: data.currency,
+      currency: data.currency || 'USD',
     };
   } catch (error) {
     console.error(`Error fetching stock price for ${symbol}:`, error);
-    throw error;
+    return {
+      currentPrice: 0,
+      currency: 'USD'
+    };
   }
 }
 
@@ -57,8 +67,8 @@ export async function getPortfolioCurrentValue() {
           console.error(`Error processing ${symbol}:`, error);
           return transactions.map(transaction => ({
             ...transaction,
-            currentValue: null,
-            currentPrice: null,
+            currentValue: transaction.shares * transaction.price, // Fallback to purchase price
+            currentPrice: transaction.price, // Fallback to purchase price
           }));
         }
       })

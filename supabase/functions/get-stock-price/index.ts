@@ -28,15 +28,31 @@ serve(async (req) => {
     console.log('Yahoo Finance response:', data);
     
     if (data.chart.error) {
-      throw new Error(data.chart.error.description);
+      return new Response(
+        JSON.stringify({ error: data.chart.error.description }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    const result = data.chart.result[0];
-    const currentPrice = result.meta.regularMarketPrice;
-    const currency = result.meta.currency;
+    const result = data.chart.result?.[0];
+    if (!result || !result.meta?.regularMarketPrice) {
+      return new Response(
+        JSON.stringify({ error: "No data found, symbol may be delisted" }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     return new Response(
-      JSON.stringify({ currentPrice, currency }),
+      JSON.stringify({ 
+        currentPrice: result.meta.regularMarketPrice,
+        currency: result.meta.currency 
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
@@ -45,7 +61,7 @@ serve(async (req) => {
     console.error('Error in get-stock-price function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
+      { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
