@@ -10,23 +10,34 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { dividendSchema } from "./schema";
+import { dividendSchema, currencies } from "./schema";
 
 type DividendFormProps = {
   onSuccess: () => void;
+  initialData?: {
+    id: string;
+    symbol: string;
+    amount: number;
+    currency: string;
+    date: string;
+  };
 };
 
-export function DividendForm({ onSuccess }: DividendFormProps) {
-  const { toast } = useToast();
+export function DividendForm({ onSuccess, initialData }: DividendFormProps) {
   const form = useForm({
     resolver: zodResolver(dividendSchema),
-    defaultValues: {
+    defaultValues: initialData ? {
+      symbol: initialData.symbol,
+      amount: initialData.amount,
+      currency: initialData.currency,
+      date: initialData.date,
+    } : {
       symbol: "",
-      amount: "",
-      currency: "",
-      date: new Date().toISOString(),
+      amount: 0,
+      currency: "USD",
+      date: new Date().toISOString().split("T")[0],
     },
   });
 
@@ -48,26 +59,39 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
   });
 
   async function onSubmit(values: any) {
-    const { error } = await supabase.from("dividends").insert({
-      ...values,
-      date: format(new Date(values.date), "yyyy-MM-dd"),
-    });
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast.error("Vous devez être connecté pour ajouter un dividende");
+        return;
+      }
 
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'enregistrement du dividende.",
-      });
-      return;
+      const dividend = {
+        user_id: user.user.id,
+        symbol: values.symbol,
+        amount: values.amount,
+        currency: values.currency,
+        date: values.date,
+      };
+
+      const { error } = initialData
+        ? await supabase
+            .from("dividends")
+            .update(dividend)
+            .eq('id', initialData.id)
+        : await supabase
+            .from("dividends")
+            .insert(dividend);
+
+      if (error) throw error;
+
+      toast.success(initialData ? "Dividende modifié avec succès" : "Dividende ajouté avec succès");
+      form.reset();
+      onSuccess();
+    } catch (error) {
+      console.error("Error adding/updating dividend:", error);
+      toast.error("Une erreur est survenue");
     }
-
-    toast({
-      title: "Succès",
-      description: "Le dividende a été enregistré avec succès.",
-    });
-    onSuccess();
-    form.reset();
   }
 
   return (
@@ -125,7 +149,7 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {["USD", "EUR", "CHF", "GBP"].map((currency) => (
+                  {currencies.map((currency) => (
                     <SelectItem key={currency} value={currency}>
                       {currency}
                     </SelectItem>
@@ -141,45 +165,18 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
           control={form.control}
           name="date"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
+            <FormItem>
               <FormLabel>Date de versement</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(new Date(field.value), "P")
-                      ) : (
-                        <span>Choisir une date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={new Date(field.value)}
-                    onSelect={(date) => field.onChange(date?.toISOString())}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input type="date" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-          Enregistrer
+        <Button type="submit" className="w-full">
+          {initialData ? "Modifier le dividende" : "Ajouter le dividende"}
         </Button>
       </form>
     </Form>

@@ -14,12 +14,12 @@ export default function DividendsPage() {
         <h1 className="text-3xl font-bold">Dividendes</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-green-600 hover:bg-green-700">
+            <Button>
               <Plus className="mr-2 h-4 w-4" />
               Nouveau dividende
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Ajouter un dividende</DialogTitle>
             </DialogHeader>
