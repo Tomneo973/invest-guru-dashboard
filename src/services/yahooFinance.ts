@@ -1,8 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StockData {
-  currentPrice: number;
+  currentPrice: number | null;
   currency: string;
+  error?: string;
 }
 
 export async function getStockPrice(symbol: string): Promise<StockData> {
@@ -13,26 +14,29 @@ export async function getStockPrice(symbol: string): Promise<StockData> {
 
     if (error) {
       console.error(`Error fetching stock price for ${symbol}:`, error);
-      throw error;
+      return {
+        currentPrice: null,
+        currency: 'USD',
+        error: error.message
+      };
     }
 
-    if (!data || !data.currentPrice) {
-      console.warn(`No price data available for ${symbol}`);
-      return {
-        currentPrice: 0,
-        currency: 'USD'
-      };
+    // If we got an error message in the response, log it but don't throw
+    if (data.error) {
+      console.warn(`Warning for ${symbol}:`, data.error);
     }
 
     return {
       currentPrice: data.currentPrice,
       currency: data.currency || 'USD',
+      error: data.error
     };
   } catch (error) {
     console.error(`Error fetching stock price for ${symbol}:`, error);
     return {
-      currentPrice: 0,
-      currency: 'USD'
+      currentPrice: null,
+      currency: 'USD',
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
@@ -60,8 +64,12 @@ export async function getPortfolioCurrentValue() {
           const stockData = await getStockPrice(symbol);
           return transactions.map(transaction => ({
             ...transaction,
-            currentValue: stockData.currentPrice * transaction.shares,
-            currentPrice: stockData.currentPrice,
+            currentValue: stockData.currentPrice !== null 
+              ? stockData.currentPrice * transaction.shares 
+              : transaction.shares * transaction.price, // Fallback to purchase price
+            currentPrice: stockData.currentPrice !== null 
+              ? stockData.currentPrice 
+              : transaction.price, // Fallback to purchase price
           }));
         } catch (error) {
           console.error(`Error processing ${symbol}:`, error);

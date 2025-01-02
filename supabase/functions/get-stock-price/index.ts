@@ -28,10 +28,14 @@ serve(async (req) => {
     console.log('Yahoo Finance response:', data);
     
     if (data.chart.error) {
+      // Return 200 with null values instead of 404
       return new Response(
-        JSON.stringify({ error: data.chart.error.description }),
+        JSON.stringify({ 
+          currentPrice: null,
+          currency: 'USD',
+          error: data.chart.error.description 
+        }),
         { 
-          status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -39,10 +43,14 @@ serve(async (req) => {
 
     const result = data.chart.result?.[0];
     if (!result || !result.meta?.regularMarketPrice) {
+      // Return 200 with null values instead of 404
       return new Response(
-        JSON.stringify({ error: "No data found, symbol may be delisted" }),
+        JSON.stringify({ 
+          currentPrice: null,
+          currency: 'USD',
+          error: "No data found, symbol may be delisted" 
+        }),
         { 
-          status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -51,7 +59,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         currentPrice: result.meta.regularMarketPrice,
-        currency: result.meta.currency 
+        currency: result.meta.currency || 'USD'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -60,9 +68,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in get-stock-price function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        currentPrice: null,
+        currency: 'USD',
+        error: error.message 
+      }),
       { 
-        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
