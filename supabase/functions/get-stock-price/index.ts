@@ -24,11 +24,26 @@ serve(async (req) => {
       }
     );
 
+    if (!response.ok) {
+      console.error(`Yahoo Finance API error: ${response.status}`);
+      return new Response(
+        JSON.stringify({ 
+          currentPrice: null,
+          currency: 'USD',
+          error: `API error: ${response.status}` 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
     const data = await response.json();
     console.log('Yahoo Finance response:', data);
     
     if (data.chart.error) {
-      // Return 200 with null values instead of 404
+      console.warn('Yahoo Finance returned error:', data.chart.error);
       return new Response(
         JSON.stringify({ 
           currentPrice: null,
@@ -37,13 +52,14 @@ serve(async (req) => {
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
         }
       );
     }
 
     const result = data.chart.result?.[0];
     if (!result || !result.meta?.regularMarketPrice) {
-      // Return 200 with null values instead of 404
+      console.warn('No market price data found for symbol:', symbol);
       return new Response(
         JSON.stringify({ 
           currentPrice: null,
@@ -52,6 +68,7 @@ serve(async (req) => {
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
         }
       );
     }
@@ -63,6 +80,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       }
     );
   } catch (error) {
@@ -75,6 +93,7 @@ serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       }
     );
   }
