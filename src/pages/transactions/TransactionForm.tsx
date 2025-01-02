@@ -9,14 +9,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface TransactionFormProps {
+  initialData?: {
+    id: string;
+    type: string;
+    symbol: string;
+    shares: number;
+    price: number;
+    date: string;
+    platform: string;
+    currency: string;
+    sector: string;
+  };
   onSuccess: () => void;
 }
 
-export function TransactionForm({ onSuccess }: TransactionFormProps) {
+export function TransactionForm({ initialData, onSuccess }: TransactionFormProps) {
   const queryClient = useQueryClient();
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
-    defaultValues: {
+    defaultValues: initialData ? {
+      type: initialData.type as "buy" | "sell",
+      symbol: initialData.symbol,
+      shares: initialData.shares,
+      price: initialData.price,
+      date: initialData.date,
+      platform: initialData.platform,
+      currency: initialData.currency,
+      sector: initialData.sector,
+    } : {
       type: "buy",
       symbol: "",
       shares: 0,
@@ -36,7 +56,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         return;
       }
 
-      // Ensure all required fields are present and correctly typed
       const transaction = {
         user_id: user.user.id,
         type: values.type,
@@ -49,19 +68,24 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         sector: values.sector,
       };
 
-      const { error } = await supabase
-        .from("transactions")
-        .insert(transaction);
+      const { error } = initialData 
+        ? await supabase
+            .from("transactions")
+            .update(transaction)
+            .eq('id', initialData.id)
+        : await supabase
+            .from("transactions")
+            .insert(transaction);
 
       if (error) throw error;
 
-      toast.success("Transaction ajoutée avec succès");
+      toast.success(initialData ? "Transaction modifiée avec succès" : "Transaction ajoutée avec succès");
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       form.reset();
       onSuccess();
     } catch (error) {
-      console.error("Error adding transaction:", error);
-      toast.error("Erreur lors de l'ajout de la transaction");
+      console.error("Error adding/updating transaction:", error);
+      toast.error(initialData ? "Erreur lors de la modification de la transaction" : "Erreur lors de l'ajout de la transaction");
     }
   };
 
@@ -70,7 +94,9 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <TransactionFormFields form={form} />
         <div className="flex justify-end space-x-2">
-          <Button type="submit">Ajouter la transaction</Button>
+          <Button type="submit">
+            {initialData ? "Modifier la transaction" : "Ajouter la transaction"}
+          </Button>
         </div>
       </form>
     </Form>

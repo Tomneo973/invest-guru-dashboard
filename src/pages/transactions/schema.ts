@@ -27,4 +27,5 @@ export const sectors = [
   "Utilities",
   "Real Estate",
   "Communication Services",
+  "ETF",
 ];
