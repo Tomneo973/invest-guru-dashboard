@@ -1,7 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/";
-
 export interface StockData {
   currentPrice: number;
   currency: string;
@@ -9,20 +7,15 @@ export interface StockData {
 
 export async function getStockPrice(symbol: string): Promise<StockData> {
   try {
-    const response = await fetch(`${BASE_URL}${symbol}?interval=1d`);
-    const data = await response.json();
-    
-    if (data.chart.error) {
-      throw new Error(data.chart.error.description);
-    }
+    const { data, error } = await supabase.functions.invoke('get-stock-price', {
+      body: { symbol }
+    });
 
-    const result = data.chart.result[0];
-    const currentPrice = result.meta.regularMarketPrice;
-    const currency = result.meta.currency;
+    if (error) throw error;
 
     return {
-      currentPrice,
-      currency,
+      currentPrice: data.currentPrice,
+      currency: data.currency,
     };
   } catch (error) {
     console.error(`Error fetching stock price for ${symbol}:`, error);

@@ -23,7 +23,7 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
     resolver: zodResolver(dividendFormSchema),
     defaultValues: {
       symbol: "",
-      amount: "",
+      amount: 0,
       currency: "USD",
       date: new Date().toISOString().split("T")[0],
     },
@@ -31,9 +31,21 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
 
   const onSubmit = async (data: FormData) => {
     try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast({
+          title: "Vous devez être connecté pour ajouter un dividende",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase.from("dividends").insert({
-        ...data,
-        amount: parseFloat(data.amount.toString()),
+        user_id: user.user.id,
+        symbol: data.symbol,
+        amount: data.amount,
+        currency: data.currency,
+        date: data.date,
       });
 
       if (error) throw error;
@@ -46,6 +58,7 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
       form.reset();
       onSuccess?.();
     } catch (error) {
+      console.error("Error adding dividend:", error);
       toast({
         title: "Erreur lors de l'ajout du dividende",
         variant: "destructive",
