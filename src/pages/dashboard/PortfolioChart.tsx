@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ChartContainer,
@@ -27,18 +27,30 @@ export function PortfolioChart() {
     return <Skeleton className="w-full h-[400px] rounded-lg" />;
   }
 
-  // Calculate portfolio value over time
+  // Aggregate transactions by date and calculate cumulative portfolio value
   const portfolioData = transactions?.reduce((acc: any[], transaction) => {
-    const lastValue = acc.length > 0 ? acc[acc.length - 1].value : 0;
-    const transactionValue = 
-      transaction.type === "buy" 
-        ? lastValue + (transaction.shares * transaction.price)
-        : lastValue - (transaction.shares * transaction.price);
-
-    return [...acc, {
-      date: transaction.date,
-      value: transactionValue,
-    }];
+    const date = transaction.date;
+    const existingEntry = acc.find(entry => entry.date === date);
+    
+    if (existingEntry) {
+      // Add to existing date's value
+      const transactionValue = transaction.type === "buy" 
+        ? transaction.shares * transaction.price
+        : -(transaction.shares * transaction.price);
+      existingEntry.value += transactionValue;
+    } else {
+      // Calculate cumulative value up to this point
+      const lastValue = acc.length > 0 ? acc[acc.length - 1].value : 0;
+      const transactionValue = transaction.type === "buy" 
+        ? transaction.shares * transaction.price
+        : -(transaction.shares * transaction.price);
+      
+      acc.push({
+        date,
+        value: lastValue + transactionValue,
+      });
+    }
+    return acc;
   }, []);
 
   const chartConfig = {
@@ -55,7 +67,7 @@ export function PortfolioChart() {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-4 border rounded-lg shadow-lg">
-          <p className="text-sm text-gray-600">{format(new Date(label), "MMM dd, yyyy")}</p>
+          <p className="text-sm text-gray-600">{format(parseISO(label), "MMM dd, yyyy")}</p>
           <p className="text-lg font-semibold text-green-500">
             ${payload[0].value.toLocaleString()}
           </p>
@@ -78,6 +90,9 @@ export function PortfolioChart() {
           </defs>
           <XAxis
             dataKey="date"
+            scale="time"
+            type="number"
+            domain={['dataMin', 'dataMax']}
             tickFormatter={(value) => format(new Date(value), "MMM dd")}
           />
           <YAxis />
