@@ -1,4 +1,4 @@
-import { serve } from "https://deno.fresh.dev/std@v9.6.1/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,6 +38,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error('Error in get-stock-price function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
