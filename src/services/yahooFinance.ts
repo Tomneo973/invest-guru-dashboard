@@ -13,6 +13,10 @@ export async function getStockPrice(symbol: string): Promise<StockData> {
 
     if (error) throw error;
 
+    if (!data || !data.currentPrice) {
+      throw new Error('Invalid response from stock price service');
+    }
+
     return {
       currentPrice: data.currentPrice,
       currency: data.currency,
@@ -31,27 +35,36 @@ export async function getPortfolioCurrentValue() {
 
     if (error) throw error;
 
+    // Group transactions by symbol to avoid duplicate API calls
+    const symbolGroups = transactions.reduce((acc: { [key: string]: any[] }, transaction) => {
+      if (!acc[transaction.symbol]) {
+        acc[transaction.symbol] = [];
+      }
+      acc[transaction.symbol].push(transaction);
+      return acc;
+    }, {});
+
     const portfolioValue = await Promise.all(
-      transactions.map(async (transaction) => {
+      Object.entries(symbolGroups).map(async ([symbol, transactions]) => {
         try {
-          const stockData = await getStockPrice(transaction.symbol);
-          return {
+          const stockData = await getStockPrice(symbol);
+          return transactions.map(transaction => ({
             ...transaction,
             currentValue: stockData.currentPrice * transaction.shares,
             currentPrice: stockData.currentPrice,
-          };
+          }));
         } catch (error) {
-          console.error(`Error processing ${transaction.symbol}:`, error);
-          return {
+          console.error(`Error processing ${symbol}:`, error);
+          return transactions.map(transaction => ({
             ...transaction,
             currentValue: null,
             currentPrice: null,
-          };
+          }));
         }
       })
     );
 
-    return portfolioValue;
+    return portfolioValue.flat();
   } catch (error) {
     console.error("Error calculating portfolio value:", error);
     throw error;

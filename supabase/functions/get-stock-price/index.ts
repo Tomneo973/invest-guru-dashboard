@@ -6,12 +6,15 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     const { symbol } = await req.json();
+    console.log('Fetching stock price for:', symbol);
+
     const response = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d`,
       {
@@ -22,6 +25,7 @@ serve(async (req) => {
     );
 
     const data = await response.json();
+    console.log('Yahoo Finance response:', data);
     
     if (data.chart.error) {
       throw new Error(data.chart.error.description);
