@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -40,7 +39,6 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Yahoo Finance response:', data);
     
     if (data.chart.error) {
       console.warn('Yahoo Finance returned error:', data.chart.error);
@@ -64,7 +62,7 @@ serve(async (req) => {
         JSON.stringify({ 
           currentPrice: null,
           currency: 'USD',
-          error: "No data found, symbol may be delisted" 
+          error: "No data found" 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

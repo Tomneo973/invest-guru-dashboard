@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PortfolioStats } from "./components/PortfolioStats";
 import { PortfolioValueChart } from "./components/PortfolioValueChart";
+import { getStockPrice } from "@/services/yahooFinance";
 
 export function PortfolioChart() {
   const { data: holdings, isLoading } = useQuery({
@@ -10,7 +11,19 @@ export function PortfolioChart() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_portfolio_holdings');
       if (error) throw error;
-      return data || [];
+
+      // Fetch current prices for all holdings
+      const holdingsWithCurrentPrices = await Promise.all(
+        data.map(async (holding) => {
+          const stockData = await getStockPrice(holding.symbol);
+          return {
+            ...holding,
+            current_value: stockData.currentPrice ? stockData.currentPrice * holding.shares : holding.total_invested,
+          };
+        })
+      );
+
+      return holdingsWithCurrentPrices;
     },
   });
 
@@ -23,7 +36,7 @@ export function PortfolioChart() {
         .order("date", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return data;
     },
   });
 
@@ -36,7 +49,7 @@ export function PortfolioChart() {
         .order("date", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return data;
     },
   });
 

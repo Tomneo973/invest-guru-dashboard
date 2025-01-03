@@ -4,9 +4,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Area, AreaChart, XAxis, YAxis, Tooltip } from "recharts";
+import { Area, AreaChart, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 interface ChartDataPoint {
   date: string;
@@ -20,7 +19,7 @@ interface PortfolioValueChartProps {
 
 export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps) {
   return (
-    <Card className="p-4">
+    <Card>
       <CardHeader>
         <CardTitle>Évolution du Portfolio et des Dividendes</CardTitle>
       </CardHeader>
@@ -61,7 +60,7 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
               tickFormatter={(value) => format(new Date(value), "dd MMM")}
             />
             <YAxis />
-            <Tooltip
+            <ChartTooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
                   const dividendValue = payload[1]?.value;
