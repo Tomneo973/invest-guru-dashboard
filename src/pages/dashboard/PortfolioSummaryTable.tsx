@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPortfolioCurrentValue } from "@/services/yahooFinance";
+import { supabase } from "@/integrations/supabase/client";
 
 type SortField = 'symbol' | 'shares' | 'avgPrice' | 'invested' | 'currentValue' | 'return' | 'currency' | 'sector';
 type SortDirection = 'asc' | 'desc';
@@ -21,9 +21,12 @@ export function PortfolioSummaryTable() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const { data: holdings, isLoading } = useQuery({
-    queryKey: ["portfolio-value"],
-    queryFn: getPortfolioCurrentValue,
-    refetchInterval: 300000, // Refresh every 5 minutes
+    queryKey: ["portfolio-holdings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_portfolio_holdings');
+      if (error) throw error;
+      return data;
+    },
   });
 
   const handleSort = (field: SortField) => {
@@ -44,16 +47,14 @@ export function PortfolioSummaryTable() {
       case 'shares':
         return multiplier * (a.shares - b.shares);
       case 'avgPrice':
-        return multiplier * (a.price - b.price);
+        return multiplier * (a.total_invested/a.shares - b.total_invested/b.shares);
       case 'invested':
-        return multiplier * ((a.shares * a.price) - (b.shares * b.price));
+        return multiplier * (a.total_invested - b.total_invested);
       case 'currentValue':
-        if (!a.currentPrice || !b.currentPrice) return 0;
-        return multiplier * ((a.shares * a.currentPrice) - (b.shares * b.currentPrice));
+        return multiplier * (a.current_value - b.current_value);
       case 'return':
-        if (!a.currentPrice || !b.currentPrice) return 0;
-        const returnA = (a.shares * a.currentPrice) - (a.shares * a.price);
-        const returnB = (b.shares * b.currentPrice) - (b.shares * b.price);
+        const returnA = a.current_value - a.total_invested;
+        const returnB = b.current_value - b.total_invested;
         return multiplier * (returnA - returnB);
       case 'currency':
         return multiplier * a.currency.localeCompare(b.currency);
@@ -117,23 +118,22 @@ export function PortfolioSummaryTable() {
         </TableHeader>
         <TableBody>
           {sortedHoldings?.map((holding) => {
-            const invested = holding.shares * holding.price;
-            const currentValue = holding.currentPrice ? holding.shares * holding.currentPrice : null;
-            const returnValue = currentValue ? currentValue - invested : null;
-            const returnPercentage = returnValue ? (returnValue / invested) * 100 : null;
+            const avgPrice = holding.shares > 0 ? holding.total_invested / holding.shares : 0;
+            const returnValue = holding.current_value - holding.total_invested;
+            const returnPercentage = holding.total_invested > 0 ? (returnValue / holding.total_invested) * 100 : 0;
 
             return (
               <TableRow key={holding.symbol}>
                 <TableCell className="font-medium">{holding.symbol}</TableCell>
                 <TableCell>{holding.shares.toLocaleString()}</TableCell>
-                <TableCell>{holding.price.toFixed(2)}</TableCell>
-                <TableCell>{invested.toLocaleString()}</TableCell>
-                <TableCell>{currentValue?.toLocaleString() ?? "N/A"}</TableCell>
+                <TableCell>{avgPrice.toFixed(2)}</TableCell>
+                <TableCell>{holding.total_invested.toLocaleString()}</TableCell>
+                <TableCell>{holding.current_value?.toLocaleString() ?? "N/A"}</TableCell>
                 <TableCell 
-                  className={returnValue && returnValue > 0 ? "text-green-600" : "text-red-600"}
+                  className={returnValue > 0 ? "text-green-600" : "text-red-600"}
                 >
                   {returnValue 
-                    ? `${returnValue.toFixed(2)} (${returnPercentage?.toFixed(2)}%)`
+                    ? `${returnValue.toFixed(2)} (${returnPercentage.toFixed(2)}%)`
                     : "N/A"
                   }
                 </TableCell>

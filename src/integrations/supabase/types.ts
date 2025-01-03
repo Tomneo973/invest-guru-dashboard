@@ -120,7 +120,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_portfolio_holdings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          symbol: string
+          shares: number
+          total_invested: number
+          current_value: number
+          sector: string
+          currency: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
