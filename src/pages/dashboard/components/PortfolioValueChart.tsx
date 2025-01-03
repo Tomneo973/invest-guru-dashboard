@@ -2,7 +2,6 @@ import { format, parseISO } from "date-fns";
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +18,7 @@ interface PortfolioValueChartProps {
 
 export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps) {
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Évolution du Portfolio et des Dividendes</CardTitle>
       </CardHeader>
@@ -41,9 +40,14 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
               },
             },
           }}
-          className="h-[300px]"
+          className="h-[300px] w-full"
         >
-          <AreaChart data={portfolioData}>
+          <AreaChart 
+            data={portfolioData}
+            width={1200}
+            height={300}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
             <defs>
               <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="rgb(34 197 94)" stopOpacity={0.3} />
@@ -57,6 +61,8 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
             <XAxis
               dataKey="date"
               type="category"
+              scale="time"
+              domain={['auto', 'auto']}
               tickFormatter={(value) => format(new Date(value), "dd MMM")}
             />
             <YAxis />
