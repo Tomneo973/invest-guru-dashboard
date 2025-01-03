@@ -19,7 +19,7 @@ interface PortfolioValueChartProps {
 
 export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps) {
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Évolution du Portfolio et des Dividendes</CardTitle>
       </CardHeader>
@@ -41,9 +41,9 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
               },
             },
           }}
-          className="h-[300px]"
+          className="h-[300px] w-full"
         >
-          <AreaChart data={portfolioData}>
+          <AreaChart data={portfolioData} width={800} height={300}>
             <defs>
               <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="rgb(34 197 94)" stopOpacity={0.3} />
