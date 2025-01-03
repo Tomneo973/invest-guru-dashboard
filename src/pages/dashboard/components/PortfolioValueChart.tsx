@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 interface ChartDataPoint {
   date: string;
@@ -63,17 +64,18 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
             <Tooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
+                  const dividendValue = payload[1]?.value;
                   return (
                     <div className="bg-white p-4 border rounded-lg shadow-lg">
                       <p className="text-sm text-gray-600">
                         {format(parseISO(label), "dd MMM yyyy")}
                       </p>
                       <p className="text-lg font-semibold text-green-500">
-                        Portfolio: {payload[0].value.toLocaleString()} €
+                        Portfolio: {Number(payload[0].value).toLocaleString()} €
                       </p>
-                      {payload[1]?.value > 0 && (
+                      {dividendValue && typeof dividendValue === 'number' && dividendValue > 0 && (
                         <p className="text-lg font-semibold text-blue-500">
-                          Dividendes: {payload[1].value.toLocaleString()} €
+                          Dividendes: {Number(dividendValue).toLocaleString()} €
                         </p>
                       )}
                     </div>
