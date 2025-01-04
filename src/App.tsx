@@ -7,6 +7,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import Index from "./pages/Index";
 import TransactionsPage from "./pages/transactions/TransactionsPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
+import StatisticsPage from "./pages/statistics/StatisticsPage";
 
 const queryClient = new QueryClient();
 
@@ -49,7 +50,7 @@ const App = () => (
             path="/statistics"
             element={
               <LayoutRoute>
-                <div>Statistics Content</div>
+                <StatisticsPage />
               </LayoutRoute>
             }
           />
