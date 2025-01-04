@@ -3,7 +3,14 @@ import { useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { dividendFormSchema } from "./schema";
@@ -24,7 +31,7 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
     defaultValues: {
       symbol: "",
       amount: 0,
-      currency: "USD",
+      currency: "EUR",
       date: new Date().toISOString().split("T")[0],
     },
   });
@@ -90,7 +97,13 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
             <FormItem>
               <FormLabel>Montant</FormLabel>
               <FormControl>
-                <Input {...field} type="number" step="0.01" placeholder="0.00" />
+                <Input
+                  {...field}
+                  type="number"
+                  step="0.01"
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  placeholder="0.00"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -104,7 +117,7 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
             <FormItem>
               <FormLabel>Devise</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="USD" />
+                <Input {...field} placeholder="EUR" />
               </FormControl>
               <FormMessage />
             </FormItem>
