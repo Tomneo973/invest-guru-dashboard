@@ -19,20 +19,27 @@ import type { z } from "zod";
 type FormData = z.infer<typeof dividendFormSchema>;
 
 interface DividendFormProps {
+  initialData?: {
+    id: string;
+    symbol: string;
+    amount: number;
+    currency: string;
+    date: string;
+  };
   onSuccess?: () => void;
 }
 
-export function DividendForm({ onSuccess }: DividendFormProps) {
+export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const form = useForm<FormData>({
     resolver: zodResolver(dividendFormSchema),
     defaultValues: {
-      symbol: "",
-      amount: 0,
-      currency: "EUR",
-      date: new Date().toISOString().split("T")[0],
+      symbol: initialData?.symbol ?? "",
+      amount: initialData?.amount ?? 0,
+      currency: initialData?.currency ?? "EUR",
+      date: initialData?.date ?? new Date().toISOString().split("T")[0],
     },
   });
 
@@ -47,27 +54,45 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
         return;
       }
 
-      const { error } = await supabase.from("dividends").insert({
-        user_id: user.user.id,
-        symbol: data.symbol,
-        amount: data.amount,
-        currency: data.currency,
-        date: data.date,
-      });
+      if (initialData) {
+        const { error } = await supabase
+          .from("dividends")
+          .update({
+            symbol: data.symbol,
+            amount: data.amount,
+            currency: data.currency,
+            date: data.date,
+          })
+          .eq("id", initialData.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Dividende ajouté avec succès",
-      });
+        toast({
+          title: "Dividende modifié avec succès",
+        });
+      } else {
+        const { error } = await supabase.from("dividends").insert({
+          user_id: user.user.id,
+          symbol: data.symbol,
+          amount: data.amount,
+          currency: data.currency,
+          date: data.date,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Dividende ajouté avec succès",
+        });
+      }
 
       queryClient.invalidateQueries({ queryKey: ["dividends"] });
       form.reset();
       onSuccess?.();
     } catch (error) {
-      console.error("Error adding dividend:", error);
+      console.error("Error adding/updating dividend:", error);
       toast({
-        title: "Erreur lors de l'ajout du dividende",
+        title: "Erreur lors de l'ajout/modification du dividende",
         variant: "destructive",
       });
     }
@@ -76,6 +101,20 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Date de versement</FormLabel>
+              <FormControl>
+                <Input {...field} type="date" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="symbol"
@@ -124,22 +163,8 @@ export function DividendForm({ onSuccess }: DividendFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date de versement</FormLabel>
-              <FormControl>
-                <Input {...field} type="date" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <Button type="submit" className="w-full">
-          Ajouter le dividende
+          {initialData ? "Modifier" : "Ajouter"} le dividende
         </Button>
       </form>
     </Form>
