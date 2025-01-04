@@ -6,13 +6,22 @@ import { CurrencyDistributionChart } from "./components/CurrencyDistributionChar
 import { SectorDistributionChart } from "./components/SectorDistributionChart";
 import { StockDistributionChart } from "./components/StockDistributionChart";
 
+type PortfolioHolding = {
+  symbol: string;
+  shares: number;
+  total_invested: number;
+  current_value: number;
+  sector: string;
+  currency: string;
+}
+
 export default function StatisticsPage() {
   const { data: holdings, isLoading } = useQuery({
     queryKey: ["portfolio-holdings"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_portfolio_holdings');
       if (error) throw error;
-      return data;
+      return data as PortfolioHolding[];
     },
   });
 
@@ -73,14 +82,14 @@ export default function StatisticsPage() {
 }
 
 type TopFlopProps = {
-  data: any[];
+  data: PortfolioHolding[] | undefined;
   type: 'currency' | 'sector' | 'stock';
 }
 
 function TopFlop({ data, type }: TopFlopProps) {
   if (!data?.length) return null;
 
-  const getKey = (item: any) => {
+  const getKey = (item: PortfolioHolding): string => {
     switch (type) {
       case 'currency':
         return item.currency;
