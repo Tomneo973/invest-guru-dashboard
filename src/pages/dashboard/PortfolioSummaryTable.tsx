@@ -13,8 +13,32 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 
-type SortField = 'symbol' | 'shares' | 'avgPrice' | 'invested' | 'currentValue' | 'return' | 'currency' | 'sector';
+type SortField = 'symbol' | 'name' | 'shares' | 'avgPrice' | 'invested' | 'currentValue' | 'return' | 'currency' | 'sector';
 type SortDirection = 'asc' | 'desc';
+
+// Mapping des symboles vers les noms complets
+const companyNames: { [key: string]: string } = {
+  'AAPL': 'Apple Inc.',
+  'MSFT': 'Microsoft Corporation',
+  'GOOGL': 'Alphabet Inc.',
+  'AMZN': 'Amazon.com Inc.',
+  'META': 'Meta Platforms Inc.',
+  'NVDA': 'NVIDIA Corporation',
+  'TSLA': 'Tesla Inc.',
+  'ABBV': 'AbbVie Inc.',
+  'JPM': 'JPMorgan Chase & Co.',
+  'JNJ': 'Johnson & Johnson',
+  'V': 'Visa Inc.',
+  'PG': 'Procter & Gamble Co.',
+  'MA': 'Mastercard Inc.',
+  'UNH': 'UnitedHealth Group Inc.',
+  'HD': 'The Home Depot Inc.',
+  'BAC': 'Bank of America Corp.',
+  'XOM': 'Exxon Mobil Corporation',
+  'PFE': 'Pfizer Inc.',
+  'DIS': 'The Walt Disney Co.',
+  'CSCO': 'Cisco Systems Inc.',
+};
 
 export function PortfolioSummaryTable() {
   const [sortField, setSortField] = useState<SortField>('symbol');
@@ -44,6 +68,10 @@ export function PortfolioSummaryTable() {
     switch (sortField) {
       case 'symbol':
         return multiplier * a.symbol.localeCompare(b.symbol);
+      case 'name':
+        const nameA = companyNames[a.symbol] || a.symbol;
+        const nameB = companyNames[b.symbol] || b.symbol;
+        return multiplier * nameA.localeCompare(nameB);
       case 'shares':
         return multiplier * (a.shares - b.shares);
       case 'avgPrice':
@@ -77,6 +105,11 @@ export function PortfolioSummaryTable() {
             <TableHead>
               <Button variant="ghost" onClick={() => handleSort('symbol')}>
                 Symbol <ArrowUpDown className="ml-2 h-4 w-4" />
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button variant="ghost" onClick={() => handleSort('name')}>
+                Nom <ArrowUpDown className="ml-2 h-4 w-4" />
               </Button>
             </TableHead>
             <TableHead>
@@ -125,6 +158,7 @@ export function PortfolioSummaryTable() {
             return (
               <TableRow key={holding.symbol}>
                 <TableCell className="font-medium">{holding.symbol}</TableCell>
+                <TableCell>{companyNames[holding.symbol] || holding.symbol}</TableCell>
                 <TableCell>{holding.shares.toLocaleString()}</TableCell>
                 <TableCell>{avgPrice.toFixed(2)}</TableCell>
                 <TableCell>{holding.total_invested.toLocaleString()}</TableCell>
