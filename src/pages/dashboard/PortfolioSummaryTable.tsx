@@ -1,44 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowUpDown } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Table, TableBody } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-
-type SortField = 'symbol' | 'name' | 'shares' | 'avgPrice' | 'invested' | 'currentValue' | 'return' | 'currency' | 'sector';
-type SortDirection = 'asc' | 'desc';
-
-// Mapping des symboles vers les noms complets
-const companyNames: { [key: string]: string } = {
-  'AAPL': 'Apple Inc.',
-  'MSFT': 'Microsoft Corporation',
-  'GOOGL': 'Alphabet Inc.',
-  'AMZN': 'Amazon.com Inc.',
-  'META': 'Meta Platforms Inc.',
-  'NVDA': 'NVIDIA Corporation',
-  'TSLA': 'Tesla Inc.',
-  'ABBV': 'AbbVie Inc.',
-  'JPM': 'JPMorgan Chase & Co.',
-  'JNJ': 'Johnson & Johnson',
-  'V': 'Visa Inc.',
-  'PG': 'Procter & Gamble Co.',
-  'MA': 'Mastercard Inc.',
-  'UNH': 'UnitedHealth Group Inc.',
-  'HD': 'The Home Depot Inc.',
-  'BAC': 'Bank of America Corp.',
-  'XOM': 'Exxon Mobil Corporation',
-  'PFE': 'Pfizer Inc.',
-  'DIS': 'The Walt Disney Co.',
-  'CSCO': 'Cisco Systems Inc.',
-};
+import { PortfolioTableHeader } from "./components/PortfolioTableHeader";
+import { PortfolioTableRow } from "./components/PortfolioTableRow";
+import { SortField, SortDirection, Holding } from "./types/portfolio";
 
 export function PortfolioSummaryTable() {
   const [sortField, setSortField] = useState<SortField>('symbol');
@@ -100,82 +67,11 @@ export function PortfolioSummaryTable() {
   return (
     <div className="rounded-lg border bg-white mt-6">
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('symbol')}>
-                Symbol <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('name')}>
-                Nom <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('shares')}>
-                Total Shares <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('avgPrice')}>
-                Avg. Price <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('invested')}>
-                Total Invested <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('currentValue')}>
-                Current Value <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('return')}>
-                Return <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('currency')}>
-                Currency <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('sector')}>
-                Sector <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
+        <PortfolioTableHeader onSort={handleSort} />
         <TableBody>
-          {sortedHoldings?.map((holding) => {
-            const avgPrice = holding.shares > 0 ? holding.total_invested / holding.shares : 0;
-            const returnValue = holding.current_value - holding.total_invested;
-            const returnPercentage = holding.total_invested > 0 ? (returnValue / holding.total_invested) * 100 : 0;
-
-            return (
-              <TableRow key={holding.symbol}>
-                <TableCell className="font-medium">{holding.symbol}</TableCell>
-                <TableCell>{companyNames[holding.symbol] || holding.symbol}</TableCell>
-                <TableCell>{holding.shares.toLocaleString()}</TableCell>
-                <TableCell>{avgPrice.toFixed(2)}</TableCell>
-                <TableCell>{holding.total_invested.toLocaleString()}</TableCell>
-                <TableCell>{holding.current_value?.toLocaleString() ?? "N/A"}</TableCell>
-                <TableCell 
-                  className={returnValue > 0 ? "text-green-600" : "text-red-600"}
-                >
-                  {returnValue 
-                    ? `${returnValue.toFixed(2)} (${returnPercentage.toFixed(2)}%)`
-                    : "N/A"
-                  }
-                </TableCell>
-                <TableCell>{holding.currency}</TableCell>
-                <TableCell>{holding.sector}</TableCell>
-              </TableRow>
-            );
-          })}
+          {sortedHoldings?.map((holding: Holding) => (
+            <PortfolioTableRow key={holding.symbol} holding={holding} />
+          ))}
         </TableBody>
       </Table>
     </div>
