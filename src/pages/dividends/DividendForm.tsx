@@ -12,11 +12,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { dividendFormSchema } from "./schema";
-import type { z } from "zod";
-
-type FormData = z.infer<typeof dividendFormSchema>;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { DividendFormValues, dividendFormSchema, currencies } from "./schema";
 
 interface DividendFormProps {
   initialData?: {
@@ -31,74 +29,59 @@ interface DividendFormProps {
 }
 
 export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const form = useForm<FormData>({
+  const form = useForm<DividendFormValues>({
     resolver: zodResolver(dividendFormSchema),
-    defaultValues: {
-      symbol: initialData?.symbol ?? "",
-      amount: initialData?.amount ?? 0,
-      currency: initialData?.currency ?? "EUR",
-      date: initialData?.date ?? new Date().toISOString().split("T")[0],
-      withheld_taxes: initialData?.withheld_taxes ?? 0,
+    defaultValues: initialData ? {
+      symbol: initialData.symbol,
+      amount: initialData.amount,
+      currency: initialData.currency,
+      date: initialData.date,
+      withheld_taxes: initialData.withheld_taxes,
+    } : {
+      symbol: "",
+      amount: 0,
+      currency: "EUR",
+      date: new Date().toISOString().split("T")[0],
+      withheld_taxes: 0,
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (values: DividendFormValues) => {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) {
-        toast({
-          title: "Vous devez être connecté pour ajouter un dividende",
-          variant: "destructive",
-        });
+        toast.error("Vous devez être connecté pour ajouter un dividende");
         return;
       }
 
-      if (initialData) {
-        const { error } = await supabase
-          .from("dividends")
-          .update({
-            symbol: data.symbol,
-            amount: data.amount,
-            currency: data.currency,
-            date: data.date,
-            withheld_taxes: data.withheld_taxes,
-          })
-          .eq("id", initialData.id);
+      const dividend = {
+        user_id: user.user.id,
+        symbol: values.symbol,
+        amount: values.amount,
+        currency: values.currency,
+        date: values.date,
+        withheld_taxes: values.withheld_taxes,
+      };
 
-        if (error) throw error;
+      const { error } = initialData 
+        ? await supabase
+            .from("dividends")
+            .update(dividend)
+            .eq('id', initialData.id)
+        : await supabase
+            .from("dividends")
+            .insert(dividend);
 
-        toast({
-          title: "Dividende modifié avec succès",
-        });
-      } else {
-        const { error } = await supabase.from("dividends").insert({
-          user_id: user.user.id,
-          symbol: data.symbol,
-          amount: data.amount,
-          currency: data.currency,
-          date: data.date,
-          withheld_taxes: data.withheld_taxes,
-        });
+      if (error) throw error;
 
-        if (error) throw error;
-
-        toast({
-          title: "Dividende ajouté avec succès",
-        });
-      }
-
+      toast.success(initialData ? "Dividende modifié avec succès" : "Dividende ajouté avec succès");
       queryClient.invalidateQueries({ queryKey: ["dividends"] });
       form.reset();
       onSuccess?.();
     } catch (error) {
       console.error("Error adding/updating dividend:", error);
-      toast({
-        title: "Erreur lors de l'ajout/modification du dividende",
-        variant: "destructive",
-      });
+      toast.error("Erreur lors de l'ajout/modification du dividende");
     }
   };
 
@@ -112,7 +95,7 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
             <FormItem>
               <FormLabel>Date de versement</FormLabel>
               <FormControl>
-                <Input {...field} type="date" />
+                <Input type="date" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -126,7 +109,7 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
             <FormItem>
               <FormLabel>Symbole</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="AAPL" />
+                <Input placeholder="AAPL" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -141,11 +124,10 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
               <FormLabel>Montant brut</FormLabel>
               <FormControl>
                 <Input
-                  {...field}
                   type="number"
                   step="0.01"
                   onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                  placeholder="0.00"
+                  value={field.value}
                 />
               </FormControl>
               <FormMessage />
@@ -161,11 +143,10 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
               <FormLabel>Taxes retenues</FormLabel>
               <FormControl>
                 <Input
-                  {...field}
                   type="number"
                   step="0.01"
                   onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                  placeholder="0.00"
+                  value={field.value}
                 />
               </FormControl>
               <FormMessage />
@@ -179,9 +160,20 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Devise</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="EUR" />
-              </FormControl>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner la devise" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency} value={currency}>
+                      {currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
