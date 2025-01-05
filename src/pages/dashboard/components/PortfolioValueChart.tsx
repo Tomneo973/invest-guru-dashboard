@@ -9,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ChartDataPoint {
   date: string;
-  value: number;
-  dividends: number;
+  portfolioValue: number;
+  cumulativeDividends: number;
 }
 
 interface PortfolioValueChartProps {
@@ -34,7 +34,7 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
               },
             },
             dividends: {
-              label: "Dividendes",
+              label: "Dividendes Cumulés",
               theme: {
                 light: "rgb(59 130 246)",
                 dark: "rgb(59 130 246)",
@@ -63,7 +63,6 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
             <ChartTooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
-                  const dividendValue = payload[1]?.value;
                   return (
                     <div className="bg-white p-4 border rounded-lg shadow-lg">
                       <p className="text-sm text-gray-600">
@@ -72,11 +71,9 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
                       <p className="text-lg font-semibold text-green-500">
                         Portfolio: {Number(payload[0].value).toLocaleString()} €
                       </p>
-                      {dividendValue && typeof dividendValue === 'number' && dividendValue > 0 && (
-                        <p className="text-lg font-semibold text-blue-500">
-                          Dividendes: {Number(dividendValue).toLocaleString()} €
-                        </p>
-                      )}
+                      <p className="text-lg font-semibold text-blue-500">
+                        Dividendes cumulés: {Number(payload[1].value).toLocaleString()} €
+                      </p>
                     </div>
                   );
                 }
@@ -85,19 +82,17 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
             />
             <Area
               type="monotone"
-              dataKey="value"
+              dataKey="portfolioValue"
               name="portfolio"
               stroke="rgb(34 197 94)"
               fill="url(#portfolioGradient)"
-              stackId="1"
             />
             <Area
               type="monotone"
-              dataKey="dividends"
+              dataKey="cumulativeDividends"
               name="dividends"
               stroke="rgb(59 130 246)"
               fill="url(#dividendsGradient)"
-              stackId="2"
             />
           </AreaChart>
         </ChartContainer>

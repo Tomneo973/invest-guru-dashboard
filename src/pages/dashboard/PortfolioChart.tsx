@@ -79,7 +79,7 @@ export function PortfolioChart() {
     .sort((a, b) => a.returnPercentage - b.returnPercentage)
     .slice(0, 5);
 
-  // Prepare chart data
+  // Prepare portfolio value data
   const portfolioData = transactions?.reduce((acc: any[], transaction) => {
     const date = transaction.date;
     const existingEntry = acc.find(entry => entry.date === date);
@@ -88,39 +88,55 @@ export function PortfolioChart() {
       const transactionValue = transaction.type === "buy" 
         ? transaction.shares * transaction.price
         : -(transaction.shares * transaction.price);
-      existingEntry.value += transactionValue;
+      existingEntry.portfolioValue += transactionValue;
     } else {
-      const lastValue = acc.length > 0 ? acc[acc.length - 1].value : 0;
+      const lastValue = acc.length > 0 ? acc[acc.length - 1].portfolioValue : 0;
       const transactionValue = transaction.type === "buy" 
         ? transaction.shares * transaction.price
         : -(transaction.shares * transaction.price);
       
       acc.push({
         date,
-        value: lastValue + transactionValue,
-        dividends: 0,
+        portfolioValue: lastValue + transactionValue,
+        cumulativeDividends: 0,
       });
     }
     return acc;
-  }, []);
+  }, []) || [];
 
-  // Add dividend data
+  // Calculate cumulative dividends separately
+  let cumulativeDividendAmount = 0;
   dividends?.forEach(dividend => {
     const existingEntry = portfolioData.find(entry => entry.date === dividend.date);
+    cumulativeDividendAmount += dividend.amount - (dividend.withheld_taxes || 0);
+    
     if (existingEntry) {
-      existingEntry.dividends = (existingEntry.dividends || 0) + dividend.amount;
+      existingEntry.cumulativeDividends = cumulativeDividendAmount;
     } else {
-      const lastValue = portfolioData.length > 0 ? portfolioData[portfolioData.length - 1].value : 0;
+      const lastPortfolioValue = portfolioData.length > 0 
+        ? portfolioData[portfolioData.length - 1].portfolioValue 
+        : 0;
+      
       portfolioData.push({
         date: dividend.date,
-        value: lastValue,
-        dividends: dividend.amount,
+        portfolioValue: lastPortfolioValue,
+        cumulativeDividends: cumulativeDividendAmount,
       });
     }
   });
 
-  // Sort data by date
+  // Sort data by date and propagate cumulative dividends
   portfolioData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  // Propagate the last known cumulative dividend value to subsequent dates
+  let lastKnownDividendValue = 0;
+  portfolioData.forEach(entry => {
+    if (entry.cumulativeDividends > 0) {
+      lastKnownDividendValue = entry.cumulativeDividends;
+    } else {
+      entry.cumulativeDividends = lastKnownDividendValue;
+    }
+  });
 
   return (
     <div className="w-full space-y-4">
