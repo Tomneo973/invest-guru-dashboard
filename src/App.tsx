@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import TransactionsPage from "./pages/transactions/TransactionsPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import StatisticsPage from "./pages/statistics/StatisticsPage";
+import DividendsPage from "./pages/dividends/DividendsPage";
 
 const queryClient = new QueryClient();
 
@@ -58,7 +59,7 @@ const App = () => (
             path="/dividends"
             element={
               <LayoutRoute>
-                <div>Dividends Content</div>
+                <DividendsPage />
               </LayoutRoute>
             }
           />

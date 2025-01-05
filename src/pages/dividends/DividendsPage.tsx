@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DividendForm } from "./DividendForm";
-import { DividendList } from "./DividendList";
+import { Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +8,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { DividendForm } from "./DividendForm";
+import { DividendList } from "./DividendList";
 
 export default function DividendsPage() {
   const [open, setOpen] = useState(false);
