@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { PortfolioTableHeader } from "./components/PortfolioTableHeader";
 import { PortfolioTableRow } from "./components/PortfolioTableRow";
-import { SortField, SortDirection, Holding } from "./types/portfolio";
+import { SortField, SortDirection, Holding, companyNames } from "./types/portfolio";
 
 export function PortfolioSummaryTable() {
   const [sortField, setSortField] = useState<SortField>('symbol');
