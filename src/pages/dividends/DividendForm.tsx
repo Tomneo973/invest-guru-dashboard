@@ -12,7 +12,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { dividendFormSchema } from "./schema";
 import type { z } from "zod";
 
@@ -25,6 +25,7 @@ interface DividendFormProps {
     amount: number;
     currency: string;
     date: string;
+    withheld_taxes: number;
   };
   onSuccess?: () => void;
 }
@@ -40,6 +41,7 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
       amount: initialData?.amount ?? 0,
       currency: initialData?.currency ?? "EUR",
       date: initialData?.date ?? new Date().toISOString().split("T")[0],
+      withheld_taxes: initialData?.withheld_taxes ?? 0,
     },
   });
 
@@ -62,6 +64,7 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
             amount: data.amount,
             currency: data.currency,
             date: data.date,
+            withheld_taxes: data.withheld_taxes,
           })
           .eq("id", initialData.id);
 
@@ -77,6 +80,7 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
           amount: data.amount,
           currency: data.currency,
           date: data.date,
+          withheld_taxes: data.withheld_taxes,
         });
 
         if (error) throw error;
@@ -134,7 +138,27 @@ export function DividendForm({ initialData, onSuccess }: DividendFormProps) {
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Montant</FormLabel>
+              <FormLabel>Montant brut</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  type="number"
+                  step="0.01"
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  placeholder="0.00"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="withheld_taxes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Taxes retenues</FormLabel>
               <FormControl>
                 <Input
                   {...field}

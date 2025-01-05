@@ -5,4 +5,5 @@ export const dividendFormSchema = z.object({
   symbol: z.string().min(1, "Le symbole est requis"),
   amount: z.number().min(0, "Le montant doit être positif"),
   currency: z.string().min(1, "La devise est requise"),
+  withheld_taxes: z.number().min(0, "Les taxes retenues doivent être positives"),
 });

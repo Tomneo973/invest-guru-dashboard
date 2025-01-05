@@ -27,6 +27,7 @@ type Dividend = {
   amount: number;
   currency: string;
   date: string;
+  withheld_taxes: number;
 };
 
 async function fetchDividends() {
@@ -67,7 +68,9 @@ export function DividendList() {
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Symbole</TableHead>
-              <TableHead>Montant</TableHead>
+              <TableHead>Montant brut</TableHead>
+              <TableHead>Taxes retenues</TableHead>
+              <TableHead>Montant net</TableHead>
               <TableHead>Devise</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -75,13 +78,13 @@ export function DividendList() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   Chargement...
                 </TableCell>
               </TableRow>
             ) : dividends.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   Aucun dividende
                 </TableCell>
               </TableRow>
@@ -94,8 +97,10 @@ export function DividendList() {
                     })}
                   </TableCell>
                   <TableCell>{dividend.symbol}</TableCell>
+                  <TableCell>{dividend.amount.toLocaleString()}</TableCell>
+                  <TableCell>{dividend.withheld_taxes.toLocaleString()}</TableCell>
                   <TableCell>
-                    {dividend.amount.toLocaleString()} {dividend.currency}
+                    {(dividend.amount - dividend.withheld_taxes).toLocaleString()}
                   </TableCell>
                   <TableCell>{dividend.currency}</TableCell>
                   <TableCell>

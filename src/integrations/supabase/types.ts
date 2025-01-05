@@ -18,6 +18,7 @@ export type Database = {
           id: string
           symbol: string
           user_id: string
+          withheld_taxes: number
         }
         Insert: {
           amount: number
@@ -27,6 +28,7 @@ export type Database = {
           id?: string
           symbol: string
           user_id: string
+          withheld_taxes?: number
         }
         Update: {
           amount?: number
@@ -36,6 +38,7 @@ export type Database = {
           id?: string
           symbol?: string
           user_id?: string
+          withheld_taxes?: number
         }
         Relationships: [
           {
