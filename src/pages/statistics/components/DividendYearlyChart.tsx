@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LabelList } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, LabelList } from "recharts";
 
 type DividendData = {
   date: string;
@@ -12,7 +12,7 @@ type DividendData = {
 const colors = {
   EUR: "#4CAF50",
   USD: "#2196F3",
-  GBP: "#9C27B0",
+  CHF: "#FF9800",
 };
 
 export function DividendYearlyChart() {
@@ -45,19 +45,42 @@ export function DividendYearlyChart() {
   }, {});
 
   const yearlyChartData = Object.values(yearlyDividends || {});
+  const currencies = Array.from(new Set(dividends?.map(d => d.currency) || []));
 
-  const currencies = Object.keys(colors);
+  // Calculer la valeur maximale pour les graduations
+  const maxValue = Math.max(...(yearlyChartData as any[]).map(d => d.total));
+  const gridStep = maxValue / 50; // Une ligne tous les 2%
+  const majorGridStep = maxValue / 10; // Une ligne plus épaisse tous les 10%
 
   return (
     <div className="h-[400px]">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={yearlyChartData}>
-          <XAxis dataKey="year" />
-          <YAxis />
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            vertical={false}
+            stroke="#e0e0e0"
+          />
+          <XAxis 
+            dataKey="year"
+            axisLine={{ stroke: '#666' }}
+            tickLine={{ stroke: '#666' }}
+          />
+          <YAxis 
+            axisLine={{ stroke: '#666' }}
+            tickLine={{ stroke: '#666' }}
+            ticks={Array.from({ length: 51 }, (_, i) => i * gridStep)}
+            tickFormatter={(value) => {
+              if (value % majorGridStep < 0.01) {
+                return value.toFixed(2);
+              }
+              return '';
+            }}
+          />
           <Tooltip 
             formatter={(value: number, name: string) => {
               if (name === "total") return null;
-              return [value.toFixed(2), `Dividendes (${name})`];
+              return [`${value.toFixed(2)}`, `Dividendes (${name})`];
             }}
           />
           <Legend />
