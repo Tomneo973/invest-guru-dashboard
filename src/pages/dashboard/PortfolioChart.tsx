@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PortfolioStats } from "./components/PortfolioStats";
 import { PortfolioValueChart } from "./components/PortfolioValueChart";
-import { DividendStats } from "./components/DividendStats";
 import { getStockPrice } from "@/services/yahooFinance";
 
 export function PortfolioChart() {
@@ -66,7 +65,6 @@ export function PortfolioChart() {
         flop5Returns={flop5Returns}
       />
       <PortfolioValueChart />
-      <DividendStats />
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { CurrencyDistributionChart } from "./components/CurrencyDistributionChart";
 import { SectorDistributionChart } from "./components/SectorDistributionChart";
 import { StockDistributionChart } from "./components/StockDistributionChart";
+import { DividendYearlyChart } from "./components/DividendYearlyChart";
+import { DividendMonthlyChart } from "./components/DividendMonthlyChart";
 
 type PortfolioHolding = {
   symbol: string;
@@ -74,6 +76,24 @@ export default function StatisticsPage() {
             <div className="w-full md:w-1/2 flex flex-col gap-6">
               <TopFlop data={holdings} type="stock" />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dividendes par année et devise</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DividendYearlyChart />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dividendes par mois</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DividendMonthlyChart />
           </CardContent>
         </Card>
       </div>
