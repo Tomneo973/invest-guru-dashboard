@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -25,50 +26,20 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error(`Yahoo Finance API error: ${response.status}`);
-      return new Response(
-        JSON.stringify({ 
-          currentPrice: null,
-          currency: 'USD',
-          error: `API error: ${response.status}` 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
-      );
+      throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
     
     if (data.chart.error) {
       console.warn('Yahoo Finance returned error:', data.chart.error);
-      return new Response(
-        JSON.stringify({ 
-          currentPrice: null,
-          currency: 'USD',
-          error: data.chart.error.description 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
-      );
+      throw new Error(data.chart.error.description);
     }
 
     const result = data.chart.result?.[0];
     if (!result || !result.meta?.regularMarketPrice) {
       console.warn('No market price data found for symbol:', symbol);
-      return new Response(
-        JSON.stringify({ 
-          currentPrice: null,
-          currency: 'USD',
-          error: "No data found" 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
-      );
+      throw new Error("No data found");
     }
 
     return new Response(
@@ -91,7 +62,7 @@ serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        status: 200 // Return 200 even for errors to ensure the response reaches the client
       }
     );
   }
