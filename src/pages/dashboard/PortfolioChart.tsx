@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PortfolioStats } from "./components/PortfolioStats";
 import { PortfolioValueChart } from "./components/PortfolioValueChart";
+import { DividendStats } from "./components/DividendStats";
 import { getStockPrice } from "@/services/yahooFinance";
 
 export function PortfolioChart() {
@@ -27,33 +28,7 @@ export function PortfolioChart() {
     },
   });
 
-  const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
-    queryKey: ["transactions"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .order("date", { ascending: true });
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: dividends, isLoading: isLoadingDividends } = useQuery({
-    queryKey: ["dividends"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dividends")
-        .select("*")
-        .order("date", { ascending: true });
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  if (isLoading || isLoadingTransactions || isLoadingDividends) {
+  if (isLoading) {
     return <Skeleton className="w-full h-[400px] rounded-lg" />;
   }
 
@@ -79,87 +54,8 @@ export function PortfolioChart() {
     .sort((a, b) => a.returnPercentage - b.returnPercentage)
     .slice(0, 5);
 
-  // Prepare portfolio value data (transactions only)
-  const portfolioData = transactions?.reduce((acc: any[], transaction) => {
-    const date = transaction.date;
-    const existingEntry = acc.find(entry => entry.date === date);
-    
-    if (existingEntry) {
-      const transactionValue = transaction.type === "buy" 
-        ? transaction.shares * transaction.price
-        : -(transaction.shares * transaction.price);
-      existingEntry.portfolioValue += transactionValue;
-    } else {
-      const lastValue = acc.length > 0 ? acc[acc.length - 1].portfolioValue : 0;
-      const transactionValue = transaction.type === "buy" 
-        ? transaction.shares * transaction.price
-        : -(transaction.shares * transaction.price);
-      
-      acc.push({
-        date,
-        portfolioValue: lastValue + transactionValue,
-      });
-    }
-    return acc;
-  }, []) || [];
-
-  // Sort portfolio data by date
-  portfolioData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  // Prepare dividends data separately
-  const dividendsData = dividends?.reduce((acc: any[], dividend) => {
-    const date = dividend.date;
-    const existingEntry = acc.find(entry => entry.date === date);
-    
-    if (existingEntry) {
-      existingEntry.cumulativeDividends += dividend.amount - (dividend.withheld_taxes || 0);
-    } else {
-      const lastValue = acc.length > 0 ? acc[acc.length - 1].cumulativeDividends : 0;
-      acc.push({
-        date,
-        cumulativeDividends: lastValue + dividend.amount - (dividend.withheld_taxes || 0),
-      });
-    }
-    return acc;
-  }, []) || [];
-
-  // Sort dividends data by date
-  dividendsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  // Combine both datasets while preserving separate points
-  const combinedData = [
-    ...portfolioData.map(entry => ({
-      date: entry.date,
-      portfolioValue: entry.portfolioValue,
-      cumulativeDividends: null,
-    })),
-    ...dividendsData.map(entry => ({
-      date: entry.date,
-      portfolioValue: null,
-      cumulativeDividends: entry.cumulativeDividends,
-    })),
-  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  // Propagate last known values
-  let lastPortfolioValue = 0;
-  let lastDividendValue = 0;
-
-  combinedData.forEach(entry => {
-    if (entry.portfolioValue !== null) {
-      lastPortfolioValue = entry.portfolioValue;
-    } else {
-      entry.portfolioValue = lastPortfolioValue;
-    }
-
-    if (entry.cumulativeDividends !== null) {
-      lastDividendValue = entry.cumulativeDividends;
-    } else {
-      entry.cumulativeDividends = lastDividendValue;
-    }
-  });
-
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-8">
       <PortfolioStats
         totalInvested={totalInvested}
         totalCurrentValue={totalCurrentValue}
@@ -169,7 +65,8 @@ export function PortfolioChart() {
         top5Returns={top5Returns}
         flop5Returns={flop5Returns}
       />
-      <PortfolioValueChart portfolioData={combinedData} />
+      <PortfolioValueChart />
+      <DividendStats />
     </div>
   );
 }
