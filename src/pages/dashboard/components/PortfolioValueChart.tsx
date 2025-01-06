@@ -114,26 +114,34 @@ export function PortfolioValueChart() {
             <YAxis />
             <ChartTooltip
               content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
-                  return (
-                    <div className="bg-white p-4 border rounded-lg shadow-lg">
-                      <p className="text-sm text-gray-600">
-                        {format(parseISO(label), "dd MMM yyyy", { locale: fr })}
-                      </p>
-                      {payload[0]?.value !== null && (
-                        <p className="text-lg font-semibold text-green-500">
-                          Portfolio: {Number(payload[0].value).toLocaleString()} €
-                        </p>
-                      )}
-                      {payload[1]?.value !== null && (
-                        <p className="text-lg font-semibold text-blue-500">
-                          Dividendes cumulés: {Number(payload[1].value).toLocaleString()} €
-                        </p>
-                      )}
-                    </div>
-                  );
+                if (!active || !payload || !payload.length || !label) {
+                  return null;
                 }
-                return null;
+
+                return (
+                  <div className="bg-white p-4 border rounded-lg shadow-lg">
+                    <p className="text-sm text-gray-600">
+                      {format(parseISO(label), "dd MMM yyyy", { locale: fr })}
+                    </p>
+                    {payload.map((entry, index) => {
+                      if (entry && entry.value !== null && entry.value !== undefined) {
+                        const isPortfolio = entry.dataKey === "portfolioValue";
+                        return (
+                          <p
+                            key={`${entry.dataKey}-${index}`}
+                            className={`text-lg font-semibold ${
+                              isPortfolio ? "text-green-500" : "text-blue-500"
+                            }`}
+                          >
+                            {isPortfolio ? "Portfolio: " : "Dividendes cumulés: "}
+                            {Number(entry.value).toLocaleString()} €
+                          </p>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                );
               }}
             />
             <Area
