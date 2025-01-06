@@ -2,15 +2,14 @@ import { format, parseISO } from "date-fns";
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ChartDataPoint {
   date: string;
-  portfolioValue: number;
-  cumulativeDividends: number;
+  portfolioValue: number | null;
+  cumulativeDividends: number | null;
 }
 
 interface PortfolioValueChartProps {
@@ -68,12 +67,16 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
                       <p className="text-sm text-gray-600">
                         {format(parseISO(label), "dd MMM yyyy")}
                       </p>
-                      <p className="text-lg font-semibold text-green-500">
-                        Portfolio: {Number(payload[0].value).toLocaleString()} €
-                      </p>
-                      <p className="text-lg font-semibold text-blue-500">
-                        Dividendes cumulés: {Number(payload[1].value).toLocaleString()} €
-                      </p>
+                      {payload[0]?.value !== null && (
+                        <p className="text-lg font-semibold text-green-500">
+                          Portfolio: {Number(payload[0].value).toLocaleString()} €
+                        </p>
+                      )}
+                      {payload[1]?.value !== null && (
+                        <p className="text-lg font-semibold text-blue-500">
+                          Dividendes cumulés: {Number(payload[1].value).toLocaleString()} €
+                        </p>
+                      )}
                     </div>
                   );
                 }
@@ -81,18 +84,20 @@ export function PortfolioValueChart({ portfolioData }: PortfolioValueChartProps)
               }}
             />
             <Area
-              type="monotone"
+              type="stepAfter"
               dataKey="portfolioValue"
               name="portfolio"
               stroke="rgb(34 197 94)"
               fill="url(#portfolioGradient)"
+              connectNulls
             />
             <Area
-              type="monotone"
+              type="stepAfter"
               dataKey="cumulativeDividends"
               name="dividends"
               stroke="rgb(59 130 246)"
               fill="url(#dividendsGradient)"
+              connectNulls
             />
           </AreaChart>
         </ChartContainer>
