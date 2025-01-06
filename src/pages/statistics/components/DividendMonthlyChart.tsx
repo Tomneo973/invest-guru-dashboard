@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, startOfYear, endOfYear, startOfMonth, endOfMonth } from "date-fns";
+import { format, subYears, startOfYear, endOfYear } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LabelList } from "recharts";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type DividendData = {
   date: string;
@@ -19,11 +19,17 @@ const colors = {
   GBP: "#9C27B0",
 };
 
+const periods = [
+  { value: "1", label: "1 an" },
+  { value: "3", label: "3 ans" },
+  { value: "5", label: "5 ans" },
+];
+
 export function DividendMonthlyChart() {
-  const [dateRange, setDateRange] = useState({
-    from: startOfYear(new Date()),
-    to: endOfYear(new Date()),
-  });
+  const [selectedPeriod, setSelectedPeriod] = useState("1");
+  const currentDate = new Date();
+  const startDate = subYears(startOfYear(currentDate), parseInt(selectedPeriod) - 1);
+  const endDate = endOfYear(currentDate);
 
   const { data: dividends } = useQuery({
     queryKey: ["dividends"],
@@ -38,14 +44,10 @@ export function DividendMonthlyChart() {
     },
   });
 
-  // Préparer les données pour le graphique mensuel
   const monthlyDividends = dividends
     ?.filter(dividend => {
       const dividendDate = new Date(dividend.date);
-      return (
-        (!dateRange.from || dividendDate >= dateRange.from) &&
-        (!dateRange.to || dividendDate <= dateRange.to)
-      );
+      return dividendDate >= startDate && dividendDate <= endDate;
     })
     .reduce((acc: any, dividend) => {
       const month = format(new Date(dividend.date), "MMM yyyy", { locale: fr });
@@ -63,34 +65,38 @@ export function DividendMonthlyChart() {
     }, {});
 
   const monthlyChartData = Object.values(monthlyDividends || {});
-
-  // Obtenir la liste unique des devises pour la légende
   const currencies = Object.keys(colors);
 
   return (
     <div className="space-y-4">
-      <div>
-        <DatePickerWithRange
-          date={{
-            from: dateRange.from,
-            to: dateRange.to,
-          }}
-          onSelect={(range) => {
-            if (range?.from) {
-              setDateRange({
-                from: startOfMonth(range.from),
-                to: range.to ? endOfMonth(range.to) : endOfMonth(range.from),
-              });
-            }
-          }}
-        />
+      <div className="w-[200px]">
+        <Select
+          value={selectedPeriod}
+          onValueChange={setSelectedPeriod}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner une période" />
+          </SelectTrigger>
+          <SelectContent>
+            {periods.map((period) => (
+              <SelectItem key={period.value} value={period.value}>
+                {period.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={monthlyChartData}>
             <XAxis dataKey="month" />
             <YAxis />
-            <Tooltip />
+            <Tooltip 
+              formatter={(value: number, name: string) => {
+                if (name === "total") return null;
+                return [value.toFixed(2), `Dividendes (${name})`];
+              }}
+            />
             <Legend />
             {currencies.map((currency) => (
               <Bar
@@ -99,15 +105,8 @@ export function DividendMonthlyChart() {
                 stackId="a"
                 fill={colors[currency as keyof typeof colors]}
                 name={`Dividendes (${currency})`}
-              >
-                <LabelList
-                  dataKey={currency}
-                  position="top"
-                  formatter={(value: number) => value > 0 ? value.toFixed(2) : ''}
-                />
-              </Bar>
+              />
             ))}
-            {/* Ajout d'une barre invisible pour afficher le total */}
             <Bar
               dataKey="total"
               stackId="b"
@@ -117,7 +116,7 @@ export function DividendMonthlyChart() {
               <LabelList
                 dataKey="total"
                 position="top"
-                formatter={(value: number) => `Total: ${value.toFixed(2)}`}
+                formatter={(value: number) => value.toFixed(2)}
                 style={{ fontWeight: 'bold' }}
               />
             </Bar>

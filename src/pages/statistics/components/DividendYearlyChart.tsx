@@ -29,7 +29,6 @@ export function DividendYearlyChart() {
     },
   });
 
-  // Préparer les données pour le graphique annuel
   const yearlyDividends = dividends?.reduce((acc: any, dividend) => {
     const year = new Date(dividend.date).getFullYear().toString();
     const netAmount = dividend.amount - dividend.withheld_taxes;
@@ -47,7 +46,6 @@ export function DividendYearlyChart() {
 
   const yearlyChartData = Object.values(yearlyDividends || {});
 
-  // Obtenir la liste unique des devises pour la légende
   const currencies = Object.keys(colors);
 
   return (
@@ -56,7 +54,12 @@ export function DividendYearlyChart() {
         <BarChart data={yearlyChartData}>
           <XAxis dataKey="year" />
           <YAxis />
-          <Tooltip />
+          <Tooltip 
+            formatter={(value: number, name: string) => {
+              if (name === "total") return null;
+              return [value.toFixed(2), `Dividendes (${name})`];
+            }}
+          />
           <Legend />
           {currencies.map((currency) => (
             <Bar
@@ -65,15 +68,8 @@ export function DividendYearlyChart() {
               stackId="a"
               fill={colors[currency as keyof typeof colors]}
               name={`Dividendes (${currency})`}
-            >
-              <LabelList
-                dataKey={currency}
-                position="top"
-                formatter={(value: number) => value.toFixed(2)}
-              />
-            </Bar>
+            />
           ))}
-          {/* Ajout d'une barre invisible pour afficher le total */}
           <Bar
             dataKey="total"
             stackId="b"
@@ -83,7 +79,7 @@ export function DividendYearlyChart() {
             <LabelList
               dataKey="total"
               position="top"
-              formatter={(value: number) => `Total: ${value.toFixed(2)}`}
+              formatter={(value: number) => value.toFixed(2)}
               style={{ fontWeight: 'bold' }}
             />
           </Bar>
