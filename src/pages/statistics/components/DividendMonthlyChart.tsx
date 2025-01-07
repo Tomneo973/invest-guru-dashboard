@@ -69,8 +69,8 @@ export function DividendMonthlyChart() {
 
   // Calculer la valeur maximale pour les graduations
   const maxValue = Math.max(...(monthlyChartData as any[]).map(d => d.total));
-  const gridStep = maxValue / 50; // Une ligne tous les 2%
-  const majorGridStep = maxValue / 10; // Une ligne plus épaisse tous les 10%
+  const gridStep = maxValue / 10; // Une ligne tous les 10%
+  const majorGridStep = maxValue / 4; // Une ligne plus épaisse tous les 25%
 
   return (
     <div className="space-y-4">
@@ -98,6 +98,7 @@ export function DividendMonthlyChart() {
               strokeDasharray="3 3" 
               vertical={false}
               stroke="#e0e0e0"
+              strokeWidth={value => value % majorGridStep < 0.01 ? 2 : 1}
             />
             <XAxis 
               dataKey="month"
@@ -107,13 +108,8 @@ export function DividendMonthlyChart() {
             <YAxis 
               axisLine={{ stroke: '#666' }}
               tickLine={{ stroke: '#666' }}
-              ticks={Array.from({ length: 51 }, (_, i) => i * gridStep)}
-              tickFormatter={(value) => {
-                if (value % majorGridStep < 0.01) {
-                  return value.toFixed(2);
-                }
-                return '';
-              }}
+              ticks={Array.from({ length: 11 }, (_, i) => i * gridStep)}
+              tickFormatter={(value) => value.toFixed(2)}
             />
             <Tooltip 
               formatter={(value: number, name: string) => {
