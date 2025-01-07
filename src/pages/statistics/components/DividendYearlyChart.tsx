@@ -60,7 +60,8 @@ export function DividendYearlyChart() {
             strokeDasharray="3 3" 
             vertical={false}
             stroke="#e0e0e0"
-            strokeWidth={value => value % majorGridStep < 0.01 ? 2 : 1}
+            strokeWidth={1}
+            className="[&>line]:stroke-[0.5] [&>line[stroke-width='2']]:stroke-1"
           />
           <XAxis 
             dataKey="year"
