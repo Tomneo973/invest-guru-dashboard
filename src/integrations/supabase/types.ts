@@ -50,6 +50,38 @@ export type Database = {
           },
         ]
       }
+      portfolio_history: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          total_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          total_value: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          total_value?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -65,6 +97,30 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_prices: {
+        Row: {
+          closing_price: number
+          created_at: string
+          currency: string
+          date: string
+          symbol: string
+        }
+        Insert: {
+          closing_price: number
+          created_at?: string
+          currency: string
+          date: string
+          symbol: string
+        }
+        Update: {
+          closing_price?: number
+          created_at?: string
+          currency?: string
+          date?: string
+          symbol?: string
         }
         Relationships: []
       }
@@ -240,3 +296,19 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export interface StockPrice {
+  symbol: string;
+  date: string;
+  closing_price: number;
+  currency: string;
+  created_at: string;
+}
+
+export interface PortfolioHistory {
+  id: string;
+  user_id: string;
+  date: string;
+  total_value: number;
+  created_at: string;
+}
