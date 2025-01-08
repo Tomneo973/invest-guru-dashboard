@@ -5,7 +5,7 @@ import { useMemo } from "react";
 
 export function usePortfolioChartData() {
   // Fetch transactions
-  const { data: transactions, isLoading: isLoadingTransactions } = useQuery<Transaction[]>({
+  const { data: transactions, isLoading: isLoadingTransactions, refetch: refetchTransactions } = useQuery<Transaction[]>({
     queryKey: ["transactions"],
     queryFn: async () => {
       console.log("Fetching transactions...");
@@ -24,7 +24,7 @@ export function usePortfolioChartData() {
   });
 
   // Fetch dividends
-  const { data: dividends, isLoading: isLoadingDividends } = useQuery<Dividend[]>({
+  const { data: dividends, isLoading: isLoadingDividends, refetch: refetchDividends } = useQuery<Dividend[]>({
     queryKey: ["dividends"],
     queryFn: async () => {
       console.log("Fetching dividends...");
@@ -56,7 +56,7 @@ export function usePortfolioChartData() {
   }, [transactions]);
 
   // Fetch historical prices
-  const { data: historicalPrices, isLoading: isLoadingPrices } = useQuery<HistoricalPrice[]>({
+  const { data: historicalPrices, isLoading: isLoadingPrices, refetch: refetchPrices } = useQuery<HistoricalPrice[]>({
     queryKey: ["historical-prices", symbols, startDate],
     queryFn: async () => {
       if (!symbols.length || !startDate) return [];
@@ -142,11 +142,18 @@ export function usePortfolioChartData() {
     return result;
   }, [transactions, historicalPrices, dividends]);
 
-  const isLoading = isLoadingTransactions || isLoadingDividends || isLoadingPrices;
+  const refetch = async () => {
+    await Promise.all([
+      refetchTransactions(),
+      refetchDividends(),
+      refetchPrices(),
+    ]);
+  };
 
   return { 
     chartData, 
-    isLoading,
-    hasData: chartData.length > 0 
+    isLoading: isLoadingTransactions || isLoadingDividends || isLoadingPrices,
+    hasData: chartData.length > 0,
+    refetch,
   };
 }

@@ -16,11 +16,42 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import { usePortfolioChartData } from "./hooks/usePortfolioChartData";
 import { PortfolioChartTooltip } from "./PortfolioChartTooltip";
+import { supabase } from "@/integrations/supabase/client";
+import { RefreshCw } from "lucide-react";
 
 export function PortfolioValueChart() {
-  const { chartData, isLoading, hasData } = usePortfolioChartData();
+  const { toast } = useToast();
+  const { chartData, isLoading, hasData, refetch } = usePortfolioChartData();
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
+  const handleUpdateHistoricalPrices = async () => {
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase.functions.invoke('update-historical-prices');
+      if (error) throw error;
+      
+      toast({
+        title: "Mise à jour réussie",
+        description: "Les données historiques ont été mises à jour avec succès.",
+      });
+      
+      // Recharger les données du graphique
+      await refetch();
+    } catch (error) {
+      console.error('Error updating historical prices:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la mise à jour des données historiques.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -54,8 +85,17 @@ export function PortfolioValueChart() {
 
   return (
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Évolution du Portfolio</CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleUpdateHistoricalPrices}
+          disabled={isUpdating}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? 'animate-spin' : ''}`} />
+          Mettre à jour les données
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
