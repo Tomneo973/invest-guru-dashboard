@@ -33,6 +33,17 @@ interface Transaction {
   created_at: string;
 }
 
+interface Dividend {
+  id: string;
+  user_id: string;
+  symbol: string;
+  amount: number;
+  currency: string;
+  date: string;
+  created_at: string;
+  withheld_taxes: number;
+}
+
 interface HistoricalPrice {
   symbol: string;
   date: string;
@@ -40,13 +51,15 @@ interface HistoricalPrice {
   currency: string;
 }
 
-interface PortfolioValue {
+interface ChartDataPoint {
   date: string;
-  value: number;
+  portfolioValue: number;
+  investedValue: number;
+  cumulativeDividends: number;
 }
 
 export function PortfolioValueChart() {
-  // Fetch transactions to get the portfolio composition history
+  // Fetch transactions
   const { data: transactions } = useQuery<Transaction[]>({
     queryKey: ["transactions"],
     queryFn: async () => {
@@ -57,6 +70,20 @@ export function PortfolioValueChart() {
 
       if (error) throw error;
       return data as Transaction[];
+    },
+  });
+
+  // Fetch dividends
+  const { data: dividends } = useQuery<Dividend[]>({
+    queryKey: ["dividends"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dividends")
+        .select("*")
+        .order("date", { ascending: true });
+
+      if (error) throw error;
+      return data as Dividend[];
     },
   });
 
@@ -75,64 +102,64 @@ export function PortfolioValueChart() {
       });
 
       if (error) throw error;
-      return data;
+      return data as HistoricalPrice[];
     },
     enabled: !!symbols.length && !!startDate,
   });
 
-  // Calculate daily portfolio values
-  const portfolioValues = React.useMemo<PortfolioValue[]>(() => {
-    if (!transactions || !historicalPrices) return [];
+  // Calculate chart data
+  const chartData = React.useMemo(() => {
+    if (!transactions || !historicalPrices || !dividends) return [];
 
-    const dailyHoldings = new Map<string, Map<string, number>>();
-    const sortedTransactions = [...transactions].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-
-    // Calculate holdings for each day
-    sortedTransactions.forEach(transaction => {
-      const date = transaction.date;
-      const prevHoldings = new Map(dailyHoldings.get(date) || new Map());
-      
-      const symbol = transaction.symbol;
-      const prevShares = prevHoldings.get(symbol) || 0;
-      const newShares = transaction.type === 'buy' 
-        ? prevShares + transaction.shares 
-        : prevShares - transaction.shares;
-      
-      prevHoldings.set(symbol, newShares);
-      dailyHoldings.set(date, prevHoldings);
-    });
-
-    // Calculate portfolio value for each day
-    const values: PortfolioValue[] = [];
+    const dateMap = new Map<string, ChartDataPoint>();
     let currentHoldings = new Map<string, number>();
+    let totalInvested = 0;
+    let cumulativeDividends = 0;
 
-    historicalPrices.forEach(price => {
-      // Update holdings if there were transactions on this day
-      if (dailyHoldings.has(price.date)) {
-        currentHoldings = new Map(dailyHoldings.get(price.date));
-      }
+    // Sort all dates from transactions, prices, and dividends
+    const allDates = [...new Set([
+      ...(transactions?.map(t => t.date) || []),
+      ...(historicalPrices?.map(p => p.date) || []),
+      ...(dividends?.map(d => d.date) || [])
+    ])].sort();
 
-      // Calculate portfolio value for this day
-      const dayPrices = historicalPrices.filter(p => p.date === price.date);
+    allDates.forEach(date => {
+      // Update holdings based on transactions for this date
+      const dayTransactions = transactions.filter(t => t.date === date);
+      dayTransactions.forEach(transaction => {
+        const shares = transaction.type === 'buy' ? transaction.shares : -transaction.shares;
+        const currentShares = currentHoldings.get(transaction.symbol) || 0;
+        currentHoldings.set(transaction.symbol, currentShares + shares);
+        
+        if (transaction.type === 'buy') {
+          totalInvested += transaction.shares * transaction.price;
+        }
+      });
+
+      // Add dividends for this date
+      const dayDividends = dividends.filter(d => d.date === date);
+      dayDividends.forEach(dividend => {
+        cumulativeDividends += dividend.amount;
+      });
+
+      // Calculate portfolio value for this date
       let portfolioValue = 0;
-
+      const dayPrices = historicalPrices.filter(p => p.date === date);
       dayPrices.forEach(price => {
         const shares = currentHoldings.get(price.symbol) || 0;
         portfolioValue += shares * price.closing_price;
       });
 
-      if (portfolioValue > 0) {
-        values.push({
-          date: price.date,
-          value: portfolioValue,
-        });
-      }
+      dateMap.set(date, {
+        date,
+        portfolioValue,
+        investedValue: totalInvested,
+        cumulativeDividends,
+      });
     });
 
-    return values;
-  }, [transactions, historicalPrices]);
+    return Array.from(dateMap.values());
+  }, [transactions, historicalPrices, dividends]);
 
   return (
     <Card className="w-full">
@@ -142,11 +169,19 @@ export function PortfolioValueChart() {
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={portfolioValues}>
+            <AreaChart data={chartData}>
               <defs>
-                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="rgb(34 197 94)" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="rgb(34 197 94)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(59 130 246)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="rgb(59 130 246)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorDividends" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(245 158 11)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="rgb(245 158 11)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid 
@@ -172,7 +207,13 @@ export function PortfolioValueChart() {
                         {format(parseISO(label), "dd MMM yyyy", { locale: fr })}
                       </p>
                       <p className="text-lg font-semibold text-green-500">
-                        {Number(payload[0].value).toLocaleString()} €
+                        Valeur: {Number(payload[0].value).toLocaleString()} €
+                      </p>
+                      <p className="text-md text-blue-500">
+                        Investi: {Number(payload[1].value).toLocaleString()} €
+                      </p>
+                      <p className="text-md text-amber-500">
+                        Dividendes: {Number(payload[2].value).toLocaleString()} €
                       </p>
                     </div>
                   );
@@ -180,10 +221,27 @@ export function PortfolioValueChart() {
               />
               <Area
                 type="monotone"
-                dataKey="value"
+                dataKey="portfolioValue"
                 stroke="rgb(34 197 94)"
                 fillOpacity={1}
-                fill="url(#colorValue)"
+                fill="url(#colorPortfolio)"
+                name="Valeur du portfolio"
+              />
+              <Area
+                type="monotone"
+                dataKey="investedValue"
+                stroke="rgb(59 130 246)"
+                fillOpacity={1}
+                fill="url(#colorInvested)"
+                name="Montant investi"
+              />
+              <Area
+                type="monotone"
+                dataKey="cumulativeDividends"
+                stroke="rgb(245 158 11)"
+                fillOpacity={1}
+                fill="url(#colorDividends)"
+                name="Dividendes cumulés"
               />
             </AreaChart>
           </ResponsiveContainer>
