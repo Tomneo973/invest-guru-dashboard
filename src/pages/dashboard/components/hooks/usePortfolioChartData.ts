@@ -47,7 +47,7 @@ export function usePortfolioChartData() {
     if (!transactions?.length) return { symbols: [], startDate: null, endDate: null };
     
     const uniqueSymbols = [...new Set(transactions.map(t => t.symbol))];
-    const dates = transactions.map(t => new Date(t.date));
+    const dates = transactions.map(t => new Date(t.date).getTime());
     return {
       symbols: uniqueSymbols,
       startDate: new Date(Math.min(...dates)).toISOString().split('T')[0],
