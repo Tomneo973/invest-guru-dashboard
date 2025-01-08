@@ -20,7 +20,7 @@ import { usePortfolioChartData } from "./hooks/usePortfolioChartData";
 import { PortfolioChartTooltip } from "./PortfolioChartTooltip";
 
 export function PortfolioValueChart() {
-  const { chartData, isLoading } = usePortfolioChartData();
+  const { chartData, isLoading, hasData } = usePortfolioChartData();
 
   if (isLoading) {
     return (
@@ -31,6 +31,21 @@ export function PortfolioValueChart() {
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
             Chargement des données...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Évolution du Portfolio</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            Aucune donnée disponible
           </div>
         </CardContent>
       </Card>
@@ -56,8 +71,8 @@ export function PortfolioValueChart() {
                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorDividends" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid 
@@ -94,7 +109,7 @@ export function PortfolioValueChart() {
               <Area
                 type="monotone"
                 dataKey="cumulativeDividends"
-                stroke="#f59e0b"
+                stroke="#eab308"
                 fillOpacity={1}
                 fill="url(#colorDividends)"
                 name="Dividendes cumulés"
