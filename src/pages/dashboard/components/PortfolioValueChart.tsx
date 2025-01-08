@@ -1,5 +1,6 @@
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, parseISO, subYears } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   Area,
@@ -18,9 +19,27 @@ import {
 } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 
+interface Transaction {
+  symbol: string;
+  date: string;
+  shares: number;
+  type: 'buy' | 'sell';
+}
+
+interface HistoricalPrice {
+  symbol: string;
+  date: string;
+  closing_price: number;
+}
+
+interface PortfolioValue {
+  date: string;
+  value: number;
+}
+
 export function PortfolioValueChart() {
   // Fetch transactions to get the portfolio composition history
-  const { data: transactions } = useQuery({
+  const { data: transactions } = useQuery<Transaction[]>({
     queryKey: ["transactions"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -38,7 +57,7 @@ export function PortfolioValueChart() {
   const symbols = [...new Set(transactions?.map(t => t.symbol) || [])];
 
   // Fetch historical prices
-  const { data: historicalPrices } = useQuery({
+  const { data: historicalPrices } = useQuery<HistoricalPrice[]>({
     queryKey: ["historical-prices", symbols, startDate],
     queryFn: async () => {
       if (!symbols.length || !startDate) return [];
@@ -54,10 +73,10 @@ export function PortfolioValueChart() {
   });
 
   // Calculate daily portfolio values
-  const portfolioValues = React.useMemo(() => {
+  const portfolioValues = React.useMemo<PortfolioValue[]>(() => {
     if (!transactions || !historicalPrices) return [];
 
-    const dailyHoldings = new Map();
+    const dailyHoldings = new Map<string, Map<string, number>>();
     const sortedTransactions = [...transactions].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
@@ -78,8 +97,8 @@ export function PortfolioValueChart() {
     });
 
     // Calculate portfolio value for each day
-    const values = [];
-    let currentHoldings = new Map();
+    const values: PortfolioValue[] = [];
+    let currentHoldings = new Map<string, number>();
 
     historicalPrices.forEach(price => {
       // Update holdings if there were transactions on this day

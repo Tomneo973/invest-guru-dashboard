@@ -296,19 +296,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export interface StockPrice {
-  symbol: string;
-  date: string;
-  closing_price: number;
-  currency: string;
-  created_at: string;
-}
-
-export interface PortfolioHistory {
-  id: string;
-  user_id: string;
-  date: string;
-  total_value: number;
-  created_at: string;
-}
