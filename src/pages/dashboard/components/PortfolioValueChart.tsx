@@ -20,16 +20,24 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 interface Transaction {
-  symbol: string;
-  date: string;
-  shares: number;
+  id: string;
+  user_id: string;
   type: 'buy' | 'sell';
+  symbol: string;
+  shares: number;
+  price: number;
+  date: string;
+  platform: string;
+  currency: string;
+  sector: string;
+  created_at: string;
 }
 
 interface HistoricalPrice {
   symbol: string;
   date: string;
   closing_price: number;
+  currency: string;
 }
 
 interface PortfolioValue {
@@ -48,7 +56,7 @@ export function PortfolioValueChart() {
         .order("date", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as Transaction[];
     },
   });
 
@@ -62,12 +70,12 @@ export function PortfolioValueChart() {
     queryFn: async () => {
       if (!symbols.length || !startDate) return [];
       
-      const response = await supabase.functions.invoke("get-historical-prices", {
+      const { data, error } = await supabase.functions.invoke("get-historical-prices", {
         body: { symbols, startDate },
       });
 
-      if (response.error) throw response.error;
-      return response.data;
+      if (error) throw error;
+      return data;
     },
     enabled: !!symbols.length && !!startDate,
   });
