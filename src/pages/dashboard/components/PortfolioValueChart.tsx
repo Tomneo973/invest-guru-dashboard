@@ -17,37 +17,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { usePortfolioChartData } from "./hooks/usePortfolioChartData";
-import { PortfolioChartTooltip } from "./PortfolioChartTooltip";
-import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw } from "lucide-react";
+import { PortfolioChartTooltip } from "./PortfolioChartTooltip";
+import { usePortfolioHistory } from "./hooks/usePortfolioHistory";
 
 export function PortfolioValueChart() {
-  const { toast } = useToast();
-  const { chartData, isLoading, hasData, refetch } = usePortfolioChartData();
+  const { historyData, isLoading, updateHistoricalData } = usePortfolioHistory();
   const [isUpdating, setIsUpdating] = React.useState(false);
 
-  const handleUpdateHistoricalPrices = async () => {
+  const handleUpdateHistoricalData = async () => {
     setIsUpdating(true);
     try {
-      const { error } = await supabase.functions.invoke('update-historical-prices');
-      if (error) throw error;
-      
-      toast({
-        title: "Mise à jour réussie",
-        description: "Les données historiques ont été mises à jour avec succès.",
-      });
-      
-      // Recharger les données du graphique
-      await refetch();
-    } catch (error) {
-      console.error('Error updating historical prices:', error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour des données historiques.",
-        variant: "destructive",
-      });
+      await updateHistoricalData();
     } finally {
       setIsUpdating(false);
     }
@@ -68,7 +49,7 @@ export function PortfolioValueChart() {
     );
   }
 
-  if (!hasData) {
+  if (!historyData?.length) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -90,17 +71,17 @@ export function PortfolioValueChart() {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleUpdateHistoricalPrices}
+          onClick={handleUpdateHistoricalData}
           disabled={isUpdating}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
           Mettre à jour les données
         </Button>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={historyData}>
               <defs>
                 <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
@@ -115,14 +96,12 @@ export function PortfolioValueChart() {
                   <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid 
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#374151"
-              />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
               <XAxis
                 dataKey="date"
-                tickFormatter={(value) => format(parseISO(value), "dd MMM", { locale: fr })}
+                tickFormatter={(value) =>
+                  format(parseISO(value), "dd MMM", { locale: fr })
+                }
                 stroke="#6B7280"
               />
               <YAxis
