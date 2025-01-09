@@ -76,7 +76,9 @@ export function usePortfolioHistory() {
       );
       if (holdingsError) throw holdingsError;
 
-      const { error: historyError } = await supabase.rpc("update_portfolio_history");
+      const { error: historyError } = await supabase.rpc(
+        "update_portfolio_history"
+      );
       if (historyError) throw historyError;
 
       await refetch();
