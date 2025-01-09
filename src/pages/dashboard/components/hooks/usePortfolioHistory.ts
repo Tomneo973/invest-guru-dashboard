@@ -19,7 +19,27 @@ export function usePortfolioHistory() {
   } = useQuery({
     queryKey: ["portfolio-history"],
     queryFn: async () => {
-      // Fetch transactions for invested value calculation
+      // Mettre à jour les holdings quotidiens
+      console.log("Updating daily holdings...");
+      const { error: holdingsError } = await supabase.rpc(
+        "update_portfolio_daily_holdings"
+      );
+      if (holdingsError) {
+        console.error("Error updating holdings:", holdingsError);
+        throw holdingsError;
+      }
+
+      // Mettre à jour l'historique du portfolio
+      console.log("Updating portfolio history...");
+      const { error: historyError } = await supabase.rpc(
+        "update_portfolio_history"
+      );
+      if (historyError) {
+        console.error("Error updating history:", historyError);
+        throw historyError;
+      }
+
+      // Récupérer les transactions pour le calcul de la valeur investie
       const { data: transactions, error: transactionsError } = await supabase
         .from("transactions")
         .select("*")
@@ -30,18 +50,18 @@ export function usePortfolioHistory() {
         throw transactionsError;
       }
 
-      // Fetch portfolio history for actual value
-      const { data: history, error: historyError } = await supabase
+      // Récupérer l'historique du portfolio pour la valeur réelle
+      const { data: history, error: portfolioHistoryError } = await supabase
         .from("portfolio_history")
         .select("*")
         .order("date", { ascending: true });
 
-      if (historyError) {
-        console.error("Error fetching portfolio history:", historyError);
-        throw historyError;
+      if (portfolioHistoryError) {
+        console.error("Error fetching portfolio history:", portfolioHistoryError);
+        throw portfolioHistoryError;
       }
 
-      // Fetch cumulative dividends
+      // Récupérer les dividendes
       const { data: dividends, error: dividendsError } = await supabase
         .from("dividends")
         .select("*")
@@ -52,16 +72,16 @@ export function usePortfolioHistory() {
         throw dividendsError;
       }
 
-      // Get all unique dates from transactions, history, and dividends
+      // Obtenir toutes les dates uniques
       const allDates = [...new Set([
         ...(transactions?.map(t => t.date) || []),
         ...(history?.map(h => h.date) || []),
         ...(dividends?.map(d => d.date) || [])
       ])].sort();
 
-      // Calculate running totals for each date
+      // Calculer les totaux pour chaque date
       const chartData: PortfolioHistoryData[] = allDates.map(date => {
-        // Calculate invested value up to this date
+        // Calculer la valeur investie jusqu'à cette date
         const investedValue = transactions
           ?.filter(t => t.date <= date)
           .reduce((total, t) => {
@@ -73,10 +93,10 @@ export function usePortfolioHistory() {
             return total;
           }, 0) || 0;
 
-        // Get portfolio value for this date
+        // Obtenir la valeur du portfolio pour cette date
         const portfolioValue = history?.find(h => h.date === date)?.total_value || investedValue;
 
-        // Calculate cumulative dividends up to this date
+        // Calculer les dividendes cumulés jusqu'à cette date
         const cumulativeDividends = dividends
           ?.filter(d => d.date <= date)
           .reduce((total, d) => total + d.amount, 0) || 0;
@@ -96,14 +116,14 @@ export function usePortfolioHistory() {
 
   const updateHistoricalData = async () => {
     try {
-      // Call the edge function to update historical data
+      // Mettre à jour les prix historiques via la fonction edge
       const { error: updateError } = await supabase.functions.invoke(
         "update-historical-prices"
       );
 
       if (updateError) throw updateError;
 
-      // Update portfolio holdings and history
+      // Mettre à jour les holdings et l'historique
       const { error: holdingsError } = await supabase.rpc(
         "update_portfolio_daily_holdings"
       );
