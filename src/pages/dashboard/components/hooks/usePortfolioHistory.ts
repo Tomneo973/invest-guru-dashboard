@@ -19,7 +19,18 @@ export function usePortfolioHistory() {
   } = useQuery({
     queryKey: ["portfolio-history"],
     queryFn: async () => {
-      // Fetch portfolio history
+      // Fetch transactions for invested value calculation
+      const { data: transactions, error: transactionsError } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("date", { ascending: true });
+
+      if (transactionsError) {
+        console.error("Error fetching transactions:", transactionsError);
+        throw transactionsError;
+      }
+
+      // Fetch portfolio history for actual value
       const { data: history, error: historyError } = await supabase
         .from("portfolio_history")
         .select("*")
@@ -41,22 +52,44 @@ export function usePortfolioHistory() {
         throw dividendsError;
       }
 
-      // Calculate cumulative dividends
-      let cumulativeDividends = 0;
-      const dividendsByDate = new Map<string, number>();
-      dividends?.forEach((dividend) => {
-        cumulativeDividends += dividend.amount;
-        dividendsByDate.set(dividend.date, cumulativeDividends);
+      // Get all unique dates from transactions, history, and dividends
+      const allDates = [...new Set([
+        ...(transactions?.map(t => t.date) || []),
+        ...(history?.map(h => h.date) || []),
+        ...(dividends?.map(d => d.date) || [])
+      ])].sort();
+
+      // Calculate running totals for each date
+      const chartData: PortfolioHistoryData[] = allDates.map(date => {
+        // Calculate invested value up to this date
+        const investedValue = transactions
+          ?.filter(t => t.date <= date)
+          .reduce((total, t) => {
+            if (t.type === 'buy') {
+              return total + (t.shares * t.price);
+            } else if (t.type === 'sell') {
+              return total - (t.shares * t.price);
+            }
+            return total;
+          }, 0) || 0;
+
+        // Get portfolio value for this date
+        const portfolioValue = history?.find(h => h.date === date)?.total_value || investedValue;
+
+        // Calculate cumulative dividends up to this date
+        const cumulativeDividends = dividends
+          ?.filter(d => d.date <= date)
+          .reduce((total, d) => total + d.amount, 0) || 0;
+
+        return {
+          date,
+          portfolioValue,
+          investedValue,
+          cumulativeDividends,
+        };
       });
 
-      // Combine all data
-      const chartData: PortfolioHistoryData[] = history?.map((record) => ({
-        date: record.date,
-        portfolioValue: record.total_value,
-        investedValue: record.total_value, // This will be updated with actual invested value if needed
-        cumulativeDividends: dividendsByDate.get(record.date) || cumulativeDividends,
-      })) || [];
-
+      console.log("Generated chart data:", chartData);
       return chartData;
     },
   });
