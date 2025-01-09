@@ -20,10 +20,21 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { PortfolioChartTooltip } from "./PortfolioChartTooltip";
 import { usePortfolioHistory } from "./hooks/usePortfolioHistory";
+import { TimeRangeSelector } from "./TimeRangeSelector";
+import { TimeRange, useTimeRangeFilter } from "./hooks/useTimeRangeFilter";
 
 export function PortfolioValueChart() {
+  const [selectedRange, setSelectedRange] = React.useState<TimeRange>("1m");
   const { historyData, isLoading, updateHistoricalData } = usePortfolioHistory();
   const [isUpdating, setIsUpdating] = React.useState(false);
+  const startDate = useTimeRangeFilter(selectedRange);
+
+  const filteredData = React.useMemo(() => {
+    if (!historyData) return [];
+    return historyData.filter(
+      (data) => new Date(data.date) >= startDate
+    );
+  }, [historyData, startDate]);
 
   const handleUpdateHistoricalData = async () => {
     setIsUpdating(true);
@@ -49,7 +60,7 @@ export function PortfolioValueChart() {
     );
   }
 
-  if (!historyData?.length) {
+  if (!filteredData?.length) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -66,22 +77,28 @@ export function PortfolioValueChart() {
 
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle>Évolution du Portfolio</CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleUpdateHistoricalData}
-          disabled={isUpdating}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
-          Mettre à jour les données
-        </Button>
+        <div className="flex items-center gap-4">
+          <TimeRangeSelector
+            selectedRange={selectedRange}
+            onRangeChange={setSelectedRange}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUpdateHistoricalData}
+            disabled={isUpdating}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
+            Mettre à jour
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={historyData}>
+            <AreaChart data={filteredData}>
               <defs>
                 <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />

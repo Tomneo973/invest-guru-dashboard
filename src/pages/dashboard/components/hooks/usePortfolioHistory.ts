@@ -72,11 +72,13 @@ export function usePortfolioHistory() {
         throw dividendsError;
       }
 
-      // Obtenir toutes les dates uniques
+      // S'assurer que nous avons des données jusqu'à aujourd'hui
+      const today = new Date().toISOString().split('T')[0];
       const allDates = [...new Set([
         ...(transactions?.map(t => t.date) || []),
         ...(history?.map(h => h.date) || []),
-        ...(dividends?.map(d => d.date) || [])
+        ...(dividends?.map(d => d.date) || []),
+        today // Ajouter la date d'aujourd'hui
       ])].sort();
 
       // Calculer les totaux pour chaque date
