@@ -14,18 +14,20 @@ type SectorDistributionChartProps = {
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
 export function SectorDistributionChart({ holdings }: SectorDistributionChartProps) {
-  const sectorData = holdings.reduce((acc, holding) => {
-    const existingSector = acc.find(item => item.name === holding.sector);
-    if (existingSector) {
-      existingSector.value += holding.current_value;
-    } else {
-      acc.push({
-        name: holding.sector,
-        value: holding.current_value
-      });
-    }
-    return acc;
-  }, [] as { name: string; value: number }[]);
+  const sectorData = holdings
+    .reduce((acc, holding) => {
+      const existingSector = acc.find(item => item.name === holding.sector);
+      if (existingSector) {
+        existingSector.value += holding.current_value;
+      } else {
+        acc.push({
+          name: holding.sector,
+          value: holding.current_value
+        });
+      }
+      return acc;
+    }, [] as { name: string; value: number }[])
+    .sort((a, b) => b.value - a.value);
 
   const total = sectorData.reduce((sum, item) => sum + item.value, 0);
 
@@ -43,7 +45,12 @@ export function SectorDistributionChart({ holdings }: SectorDistributionChartPro
           dataKey="value"
         >
           {sectorData.map((_, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            <Cell 
+              key={`cell-${index}`} 
+              fill={COLORS[index % COLORS.length]} 
+              stroke="rgba(255, 255, 255, 0.5)"
+              strokeWidth={2}
+            />
           ))}
         </Pie>
         <Tooltip
@@ -51,6 +58,12 @@ export function SectorDistributionChart({ holdings }: SectorDistributionChartPro
             `${((value / total) * 100).toFixed(1)}% (${value.toLocaleString()})`,
             "Valeur"
           ]}
+          contentStyle={{
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderRadius: '8px',
+            border: 'none',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+          }}
         />
       </PieChart>
     </ResponsiveContainer>

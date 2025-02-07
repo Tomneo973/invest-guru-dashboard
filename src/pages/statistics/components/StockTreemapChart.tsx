@@ -11,20 +11,22 @@ type StockTreemapChartProps = {
 };
 
 export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
-  const data = holdings.map((holding) => ({
-    name: holding.symbol,
-    size: holding.current_value,
-    value: holding.current_value,
-    percentChange: ((holding.current_value - holding.current_value) / holding.current_value * 100).toFixed(2)
-  }));
+  const data = holdings
+    .map((holding) => ({
+      name: holding.symbol,
+      size: holding.current_value,
+      value: holding.current_value,
+      percentChange: ((holding.current_value - holding.current_value) / holding.current_value * 100).toFixed(2)
+    }))
+    .sort((a, b) => b.value - a.value);
 
   const CustomizedContent = (props: any) => {
-    const { root, depth, x, y, width, height, name, value, percentChange } = props;
+    const { root, x, y, width, height, name, value } = props;
 
     const percentage = ((value / root.value) * 100).toFixed(1);
-    const isGain = Number(percentChange) >= 0;
-    const bgColor = isGain ? 'rgb(134, 239, 172, 0.8)' : 'rgb(252, 165, 165, 0.8)';
-    const textColor = 'rgb(17, 24, 39)';
+    const bgColor = 'rgb(34, 197, 94, 0.9)';
+    const textColor = 'rgb(255, 255, 255)';
+    const strokeColor = 'rgba(255, 255, 255, 0.5)';
 
     return (
       <g>
@@ -34,7 +36,7 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
           width={width}
           height={height}
           fill={bgColor}
-          stroke="#fff"
+          stroke={strokeColor}
           strokeWidth={2}
         />
         {width > 50 && height > 50 && (
