@@ -15,9 +15,9 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
   const data = holdings
     .map((holding) => {
       const gainLoss = holding.current_value - holding.total_invested;
-      const gainLossPercentage = ((gainLoss / holding.total_invested) * 100).toFixed(2);
-      const portfolioPercentage = ((holding.current_value / holdings.reduce((sum, h) => sum + h.current_value, 0)) * 100).toFixed(2);
-      const averagePurchasePrice = (holding.total_invested / holding.shares).toFixed(2);
+      const gainLossPercentage = ((gainLoss / holding.total_invested) * 100);
+      const portfolioPercentage = ((holding.current_value / holdings.reduce((sum, h) => sum + h.current_value, 0)) * 100);
+      const averagePurchasePrice = holding.shares > 0 ? holding.total_invested / holding.shares : 0;
 
       return {
         name: holding.symbol,
@@ -81,7 +81,7 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
               fill={textColor}
               fontSize={12}
             >
-              {`${portfolioPercentage}% (${gainLoss >= 0 ? '+' : ''}${gainLossPercentage}%)`}
+              {`${portfolioPercentage.toFixed(1)}% (${gainLoss >= 0 ? '+' : ''}${gainLossPercentage.toFixed(1)}%)`}
             </text>
           </>
         )}
@@ -108,11 +108,11 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
         <p className="font-semibold mb-2">{data.name}</p>
         <div className="space-y-1 text-sm">
           <p>Valeur totale: {formattedValue}</p>
-          <p className={data.gainLoss >= 0 ? "text-success" : "text-danger"}>
-            Plus/Moins value: {formattedGainLoss} ({data.gainLoss >= 0 ? '+' : ''}{data.gainLossPercentage}%)
+          <p className={data.gainLoss >= 0 ? "text-green-600" : "text-red-600"}>
+            Plus/Moins value: {formattedGainLoss} ({data.gainLoss >= 0 ? '+' : ''}{data.gainLossPercentage.toFixed(2)}%)
           </p>
-          <p>Part du portfolio: {data.portfolioPercentage}%</p>
-          <p>PRU: {data.averagePurchasePrice} €</p>
+          <p>Part du portfolio: {data.portfolioPercentage.toFixed(1)}%</p>
+          <p>PRU: {data.averagePurchasePrice.toFixed(2)} €</p>
           <p>Quantité: {data.shares}</p>
         </div>
       </div>
