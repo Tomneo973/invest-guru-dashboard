@@ -22,6 +22,17 @@ type TreemapData = {
   averagePurchasePrice: number;
 };
 
+type CustomTreemapContentProps = {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  name?: string;
+  gainLoss?: number;
+  gainLossPercentage?: number;
+  portfolioPercentage?: number;
+};
+
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
@@ -29,7 +40,7 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-const calculatePerformanceColor = (gainLoss: number, gainLossPercentage: number): string => {
+const calculatePerformanceColor = (gainLoss: number = 0, gainLossPercentage: number = 0): string => {
   // Normalize based on 50% gain/loss for more intense colors
   const intensity = Math.min(Math.abs(gainLossPercentage) / 50, 1);
   
@@ -44,7 +55,16 @@ const calculatePerformanceColor = (gainLoss: number, gainLossPercentage: number)
   }
 };
 
-const CustomTreemapContent = ({ x, y, width, height, name, gainLoss, gainLossPercentage, portfolioPercentage }: any) => {
+const CustomTreemapContent = ({ 
+  x = 0, 
+  y = 0, 
+  width = 0, 
+  height = 0, 
+  name = '', 
+  gainLoss = 0, 
+  gainLossPercentage = 0, 
+  portfolioPercentage = 0 
+}: CustomTreemapContentProps) => {
   if (!width || !height || width < 0 || height < 0) return null;
 
   const bgColor = calculatePerformanceColor(gainLoss, gainLossPercentage);
@@ -98,14 +118,14 @@ const CustomTooltip = ({ active, payload }: any) => {
     <div className="bg-white/95 p-3 rounded-lg shadow-lg border border-gray-200">
       <p className="font-semibold mb-2">{data.name}</p>
       <div className="space-y-1 text-sm">
-        <p>Valeur totale: {formatCurrency(data.value)}</p>
+        <p>Valeur totale: {formatCurrency(data.value || 0)}</p>
         <p className={data.gainLoss >= 0 ? "text-green-600" : "text-red-600"}>
-          Plus/Moins value: {formatCurrency(data.gainLoss)} ({data.gainLoss >= 0 ? '+' : ''}
-          {data.gainLossPercentage.toFixed(2)}%)
+          Plus/Moins value: {formatCurrency(data.gainLoss || 0)} ({data.gainLoss >= 0 ? '+' : ''}
+          {(data.gainLossPercentage || 0).toFixed(2)}%)
         </p>
-        <p>Part du portfolio: {data.portfolioPercentage.toFixed(1)}%</p>
-        <p>PRU: {data.averagePurchasePrice.toFixed(2)} €</p>
-        <p>Quantité: {data.shares}</p>
+        <p>Part du portfolio: {(data.portfolioPercentage || 0).toFixed(1)}%</p>
+        <p>PRU: {(data.averagePurchasePrice || 0).toFixed(2)} €</p>
+        <p>Quantité: {data.shares || 0}</p>
       </div>
     </div>
   );
@@ -117,9 +137,15 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
   const data: TreemapData[] = holdings
     .map((holding) => {
       const gainLoss = holding.current_value - holding.total_invested;
-      const gainLossPercentage = (gainLoss / holding.total_invested) * 100;
-      const portfolioPercentage = (holding.current_value / totalPortfolioValue) * 100;
-      const averagePurchasePrice = holding.shares > 0 ? holding.total_invested / holding.shares : 0;
+      const gainLossPercentage = holding.total_invested > 0 
+        ? (gainLoss / holding.total_invested) * 100 
+        : 0;
+      const portfolioPercentage = totalPortfolioValue > 0 
+        ? (holding.current_value / totalPortfolioValue) * 100 
+        : 0;
+      const averagePurchasePrice = holding.shares > 0 
+        ? holding.total_invested / holding.shares 
+        : 0;
 
       return {
         name: holding.symbol,
