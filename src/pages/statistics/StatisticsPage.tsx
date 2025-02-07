@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { CurrencyDistributionChart } from "./components/CurrencyDistributionChart";
 import { SectorDistributionChart } from "./components/SectorDistributionChart";
-import { StockDistributionChart } from "./components/StockDistributionChart";
+import { StockTreemapChart } from "./components/StockTreemapChart";
 import { DividendYearlyChart } from "./components/DividendYearlyChart";
 import { DividendMonthlyChart } from "./components/DividendMonthlyChart";
 
@@ -39,6 +39,15 @@ export default function StatisticsPage() {
       <div className="flex flex-col gap-8">
         <Card>
           <CardHeader>
+            <CardTitle>Répartition par action</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <StockTreemapChart holdings={holdings} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Répartition par devise</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col md:flex-row gap-6">
@@ -61,20 +70,6 @@ export default function StatisticsPage() {
             </div>
             <div className="w-full md:w-1/2 flex flex-col gap-6">
               <TopFlop data={holdings} type="sector" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Répartition par action</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col md:flex-row gap-6">
-            <div className="w-full md:w-1/2">
-              <StockDistributionChart holdings={holdings} />
-            </div>
-            <div className="w-full md:w-1/2 flex flex-col gap-6">
-              <TopFlop data={holdings} type="stock" />
             </div>
           </CardContent>
         </Card>
