@@ -1,4 +1,3 @@
-
 import React from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -32,17 +31,9 @@ export function PortfolioValueChart() {
 
   const filteredData = React.useMemo(() => {
     if (!historyData) return [];
-    
-    // Filtrer les données selon la période sélectionnée
-    const filtered = historyData.filter(data => {
-      const dataDate = new Date(data.date);
-      return dataDate >= startDate;
-    });
-
-    // Trier les données par date
-    return filtered.sort((a, b) => {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
+    return historyData.filter(
+      (data) => new Date(data.date) >= startDate
+    );
   }, [historyData, startDate]);
 
   const handleUpdateHistoricalData = async () => {
@@ -77,7 +68,7 @@ export function PortfolioValueChart() {
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
-            Aucune donnée disponible pour la période sélectionnée
+            Aucune donnée disponible
           </div>
         </CardContent>
       </Card>
@@ -99,9 +90,7 @@ export function PortfolioValueChart() {
             onClick={handleUpdateHistoricalData}
             disabled={isUpdating}
           >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
             Mettre à jour
           </Button>
         </div>
@@ -124,11 +113,7 @@ export function PortfolioValueChart() {
                   <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#374151"
-              />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
               <XAxis
                 dataKey="date"
                 tickFormatter={(value) =>
@@ -148,7 +133,6 @@ export function PortfolioValueChart() {
                 fillOpacity={1}
                 fill="url(#colorInvested)"
                 name="Montant investi"
-                isAnimationActive={false}
               />
               <Area
                 type="monotone"
@@ -157,7 +141,6 @@ export function PortfolioValueChart() {
                 fillOpacity={1}
                 fill="url(#colorPortfolio)"
                 name="Valeur du portfolio"
-                isAnimationActive={false}
               />
               <Area
                 type="monotone"
@@ -166,7 +149,6 @@ export function PortfolioValueChart() {
                 fillOpacity={1}
                 fill="url(#colorDividends)"
                 name="Dividendes cumulés"
-                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>
