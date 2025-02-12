@@ -20,9 +20,9 @@ export function usePortfolioHistory() {
   } = useQuery({
     queryKey: ["portfolio-history"],
     queryFn: async () => {
-      console.log("Fetching portfolio history...");
-      
-      // 1. Mettre à jour les holdings quotidiens
+      console.log("Fetching portfolio history data...");
+
+      // 1. Mettre à jour les holdings quotidiens pour s'assurer d'avoir les dernières données
       console.log("Updating daily holdings...");
       const { error: holdingsError } = await supabase.rpc(
         "update_portfolio_daily_holdings"
@@ -32,7 +32,7 @@ export function usePortfolioHistory() {
         throw holdingsError;
       }
 
-      // 2. Mettre à jour l'historique du portfolio
+      // 2. Mettre à jour l'historique des valeurs du portfolio
       console.log("Updating portfolio history...");
       const { error: historyError } = await supabase.rpc(
         "update_portfolio_history"
@@ -42,8 +42,8 @@ export function usePortfolioHistory() {
         throw historyError;
       }
 
-      // 3. Récupérer les données de l'historique
-      const { data: history, error: historyFetchError } = await supabase
+      // 3. Récupérer les données mise à jour
+      const { data: portfolioHistory, error: historyFetchError } = await supabase
         .from("portfolio_history")
         .select("*")
         .order("date", { ascending: true });
@@ -53,7 +53,7 @@ export function usePortfolioHistory() {
         throw historyFetchError;
       }
 
-      // 4. Récupérer les transactions pour calculer le montant investi
+      // 4. Récupérer les transactions
       const { data: transactions, error: transactionsError } = await supabase
         .from("transactions")
         .select("*")
@@ -75,31 +75,31 @@ export function usePortfolioHistory() {
         throw dividendsError;
       }
 
-      // 6. Créer un ensemble de dates uniques
+      // 6. Créer un ensemble de dates uniques à partir de toutes les sources
       const allDates = new Set<string>();
-      history?.forEach(h => allDates.add(h.date));
+      portfolioHistory?.forEach(h => allDates.add(h.date));
       transactions?.forEach(t => allDates.add(t.date));
       dividends?.forEach(d => allDates.add(d.date));
 
       // 7. Convertir en tableau trié
       const sortedDates = Array.from(allDates).sort();
 
-      // 8. Calculer les données pour chaque date
+      // 8. Générer les données du graphique
       const chartData: PortfolioHistoryData[] = sortedDates.map(date => {
         // Trouver la valeur du portfolio pour cette date
-        const historyEntry = history?.find(h => h.date === date);
-        
+        const historyEntry = portfolioHistory?.find(h => h.date === date);
+
         // Calculer le montant investi cumulé jusqu'à cette date
-        const investedValue = transactions
+        let investedValue = 0;
+        transactions
           ?.filter(t => t.date <= date)
-          .reduce((total, t) => {
+          .forEach(t => {
             if (t.type === 'buy') {
-              return total + (t.shares * t.price);
+              investedValue += t.shares * t.price;
             } else if (t.type === 'sell') {
-              return total - (t.shares * t.price);
+              investedValue -= t.shares * t.price;
             }
-            return total;
-          }, 0) || 0;
+          });
 
         // Calculer les dividendes cumulés jusqu'à cette date
         const cumulativeDividends = dividends
