@@ -1,3 +1,4 @@
+
 import React from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -31,10 +32,16 @@ export function PortfolioValueChart() {
 
   const filteredData = React.useMemo(() => {
     if (!historyData) return [];
-    console.log("Filtering data from", startDate, "with", historyData.length, "points");
-    return historyData.filter(
-      (data) => new Date(data.date) >= startDate
+    console.log(
+      "Filtering data from",
+      startDate,
+      "with",
+      historyData.length,
+      "points"
     );
+    return historyData
+      .filter((data) => new Date(data.date) >= startDate)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [historyData, startDate]);
 
   const handleUpdateHistoricalData = async () => {
@@ -91,7 +98,9 @@ export function PortfolioValueChart() {
             onClick={handleUpdateHistoricalData}
             disabled={isUpdating}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`}
+            />
             Mettre à jour
           </Button>
         </div>
@@ -114,7 +123,11 @@ export function PortfolioValueChart() {
                   <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#374151"
+              />
               <XAxis
                 dataKey="date"
                 tickFormatter={(value) =>
@@ -134,6 +147,7 @@ export function PortfolioValueChart() {
                 fillOpacity={1}
                 fill="url(#colorInvested)"
                 name="Montant investi"
+                isAnimationActive={false}
               />
               <Area
                 type="monotone"
@@ -142,6 +156,7 @@ export function PortfolioValueChart() {
                 fillOpacity={1}
                 fill="url(#colorPortfolio)"
                 name="Valeur du portfolio"
+                isAnimationActive={false}
               />
               <Area
                 type="monotone"
@@ -150,6 +165,7 @@ export function PortfolioValueChart() {
                 fillOpacity={1}
                 fill="url(#colorDividends)"
                 name="Dividendes cumulés"
+                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>

@@ -22,77 +22,46 @@ export function usePortfolioHistory() {
     queryFn: async () => {
       console.log("Fetching portfolio history data...");
 
-      // Mettre à jour les holdings quotidiens
-      const { error: holdingsError } = await supabase.rpc(
-        "update_portfolio_daily_holdings"
-      );
-      if (holdingsError) {
-        console.error("Error updating holdings:", holdingsError);
-        throw holdingsError;
-      }
-
-      // Mettre à jour l'historique du portfolio
-      const { error: historyError } = await supabase.rpc(
-        "update_portfolio_history"
-      );
-      if (historyError) {
-        console.error("Error updating history:", historyError);
-        throw historyError;
-      }
-
-      // Récupérer tout l'historique du portfolio
-      const { data: history, error: portfolioHistoryError } = await supabase
-        .from("portfolio_history")
-        .select("*")
-        .order("date", { ascending: true });
-
-      if (portfolioHistoryError) {
-        console.error("Error fetching portfolio history:", portfolioHistoryError);
-        throw portfolioHistoryError;
-      }
-
-      // Récupérer les transactions
+      // 1. Récupérer toutes les transactions
       const { data: transactions, error: transactionsError } = await supabase
         .from("transactions")
         .select("*")
         .order("date", { ascending: true });
 
-      if (transactionsError) {
-        console.error("Error fetching transactions:", transactionsError);
-        throw transactionsError;
-      }
+      if (transactionsError) throw transactionsError;
 
-      // Récupérer les dividendes
+      // 2. Récupérer tous les dividendes
       const { data: dividends, error: dividendsError } = await supabase
         .from("dividends")
         .select("*")
         .order("date", { ascending: true });
 
-      if (dividendsError) {
-        console.error("Error fetching dividends:", dividendsError);
-        throw dividendsError;
-      }
+      if (dividendsError) throw dividendsError;
 
-      // S'assurer que nous avons des données pour chaque jour
+      // 3. Récupérer tous les prix historiques
+      const { data: stockPrices, error: pricesError } = await supabase
+        .from("stock_prices")
+        .select("*")
+        .order("date", { ascending: true });
+
+      if (pricesError) throw pricesError;
+
+      // Créer un ensemble de dates uniques
       const allDates = new Set<string>();
       
-      // Ajouter toutes les dates depuis la première transaction jusqu'à aujourd'hui
-      if (transactions && transactions.length > 0) {
-        let currentDate = new Date(transactions[0].date);
-        const today = new Date();
-        
-        while (currentDate <= today) {
-          allDates.add(currentDate.toISOString().split('T')[0]);
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-      }
+      // Ajouter les dates des transactions
+      transactions?.forEach(t => allDates.add(t.date));
+      // Ajouter les dates des dividendes
+      dividends?.forEach(d => allDates.add(d.date));
+      // Ajouter les dates des prix
+      stockPrices?.forEach(p => allDates.add(p.date));
 
       // Convertir en tableau trié
       const sortedDates = Array.from(allDates).sort();
 
-      // Calculer les valeurs cumulatives pour chaque date
+      // Calculer les données historiques pour chaque date
       const chartData: PortfolioHistoryData[] = sortedDates.map(date => {
-        // Calculer la valeur investie jusqu'à cette date
+        // 1. Calculer la valeur investie cumulée jusqu'à cette date
         const investedValue = transactions
           ?.filter(t => t.date <= date)
           .reduce((total, t) => {
@@ -104,14 +73,38 @@ export function usePortfolioHistory() {
             return total;
           }, 0) || 0;
 
-        // Obtenir la valeur du portfolio pour cette date
-        const historyEntry = history?.find(h => h.date === date);
-        const portfolioValue = historyEntry?.total_value ?? investedValue;
-
-        // Calculer les dividendes cumulés jusqu'à cette date
+        // 2. Calculer les dividendes cumulés jusqu'à cette date
         const cumulativeDividends = dividends
           ?.filter(d => d.date <= date)
           .reduce((total, d) => total + d.amount, 0) || 0;
+
+        // 3. Calculer la valeur du portfolio à cette date
+        // D'abord, obtenir les holdings à cette date
+        const holdings = transactions
+          ?.filter(t => t.date <= date)
+          .reduce((acc, t) => {
+            const currentShares = acc[t.symbol] || 0;
+            const newShares = t.type === 'buy' 
+              ? currentShares + t.shares 
+              : currentShares - t.shares;
+            
+            if (newShares > 0) {
+              acc[t.symbol] = newShares;
+            } else {
+              delete acc[t.symbol];
+            }
+            return acc;
+          }, {} as Record<string, number>);
+
+        // Calculer la valeur totale en utilisant les prix de clôture
+        const portfolioValue = Object.entries(holdings).reduce((total, [symbol, shares]) => {
+          const price = stockPrices
+            ?.filter(p => p.symbol === symbol && p.date <= date)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+            ?.closing_price || 0;
+          
+          return total + (shares * price);
+        }, 0);
 
         return {
           date,
@@ -134,17 +127,6 @@ export function usePortfolioHistory() {
       );
 
       if (updateError) throw updateError;
-
-      // Mettre à jour les holdings et l'historique
-      const { error: holdingsError } = await supabase.rpc(
-        "update_portfolio_daily_holdings"
-      );
-      if (holdingsError) throw holdingsError;
-
-      const { error: historyError } = await supabase.rpc(
-        "update_portfolio_history"
-      );
-      if (historyError) throw historyError;
 
       await refetch();
 
