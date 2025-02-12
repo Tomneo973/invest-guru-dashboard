@@ -22,7 +22,7 @@ export function usePortfolioHistory() {
     queryFn: async () => {
       console.log("Fetching portfolio history data...");
 
-      // 1. Récupérer toutes les transactions
+      // Récupérer toutes les transactions
       const { data: transactions, error: transactionsError } = await supabase
         .from("transactions")
         .select("*")
@@ -30,7 +30,11 @@ export function usePortfolioHistory() {
 
       if (transactionsError) throw transactionsError;
 
-      // 2. Récupérer tous les dividendes
+      if (!transactions || transactions.length === 0) {
+        return [];
+      }
+
+      // Récupérer tous les dividendes
       const { data: dividends, error: dividendsError } = await supabase
         .from("dividends")
         .select("*")
@@ -38,7 +42,7 @@ export function usePortfolioHistory() {
 
       if (dividendsError) throw dividendsError;
 
-      // 3. Récupérer tous les prix historiques
+      // Récupérer tous les prix historiques
       const { data: stockPrices, error: pricesError } = await supabase
         .from("stock_prices")
         .select("*")
@@ -46,24 +50,51 @@ export function usePortfolioHistory() {
 
       if (pricesError) throw pricesError;
 
-      // Créer un ensemble de dates uniques
+      // Créer un ensemble de dates uniques à partir des transactions et des prix
       const allDates = new Set<string>();
-      
-      // Ajouter les dates des transactions
-      transactions?.forEach(t => allDates.add(t.date));
-      // Ajouter les dates des dividendes
-      dividends?.forEach(d => allDates.add(d.date));
-      // Ajouter les dates des prix
+      transactions.forEach(t => allDates.add(t.date));
       stockPrices?.forEach(p => allDates.add(p.date));
+      dividends?.forEach(d => allDates.add(d.date));
 
-      // Convertir en tableau trié
       const sortedDates = Array.from(allDates).sort();
 
-      // Calculer les données historiques pour chaque date
-      const chartData: PortfolioHistoryData[] = sortedDates.map(date => {
-        // 1. Calculer la valeur investie cumulée jusqu'à cette date
+      // Pour chaque date, calculer l'état du portfolio
+      const chartData: PortfolioHistoryData[] = sortedDates.map(currentDate => {
+        // 1. Calculer les positions pour cette date
+        const holdings = new Map<string, number>();
+        
+        // Appliquer toutes les transactions jusqu'à cette date pour obtenir les positions
+        transactions
+          .filter(t => t.date <= currentDate)
+          .forEach(t => {
+            const currentShares = holdings.get(t.symbol) || 0;
+            const newShares = t.type === 'buy' 
+              ? currentShares + t.shares 
+              : currentShares - t.shares;
+            
+            if (newShares > 0) {
+              holdings.set(t.symbol, newShares);
+            } else {
+              holdings.delete(t.symbol);
+            }
+          });
+
+        // 2. Calculer la valeur du portfolio pour cette date
+        let portfolioValue = 0;
+        holdings.forEach((shares, symbol) => {
+          // Trouver le prix de clôture le plus récent pour cette date
+          const latestPrice = stockPrices
+            ?.filter(p => p.symbol === symbol && p.date <= currentDate)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+          if (latestPrice) {
+            portfolioValue += shares * latestPrice.closing_price;
+          }
+        });
+
+        // 3. Calculer le montant total investi jusqu'à cette date
         const investedValue = transactions
-          ?.filter(t => t.date <= date)
+          .filter(t => t.date <= currentDate)
           .reduce((total, t) => {
             if (t.type === 'buy') {
               return total + (t.shares * t.price);
@@ -71,43 +102,15 @@ export function usePortfolioHistory() {
               return total - (t.shares * t.price);
             }
             return total;
-          }, 0) || 0;
+          }, 0);
 
-        // 2. Calculer les dividendes cumulés jusqu'à cette date
+        // 4. Calculer les dividendes cumulés jusqu'à cette date
         const cumulativeDividends = dividends
-          ?.filter(d => d.date <= date)
+          ?.filter(d => d.date <= currentDate)
           .reduce((total, d) => total + d.amount, 0) || 0;
 
-        // 3. Calculer la valeur du portfolio à cette date
-        // D'abord, obtenir les holdings à cette date
-        const holdings = transactions
-          ?.filter(t => t.date <= date)
-          .reduce((acc, t) => {
-            const currentShares = acc[t.symbol] || 0;
-            const newShares = t.type === 'buy' 
-              ? currentShares + t.shares 
-              : currentShares - t.shares;
-            
-            if (newShares > 0) {
-              acc[t.symbol] = newShares;
-            } else {
-              delete acc[t.symbol];
-            }
-            return acc;
-          }, {} as Record<string, number>);
-
-        // Calculer la valeur totale en utilisant les prix de clôture
-        const portfolioValue = Object.entries(holdings).reduce((total, [symbol, shares]) => {
-          const price = stockPrices
-            ?.filter(p => p.symbol === symbol && p.date <= date)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-            ?.closing_price || 0;
-          
-          return total + (shares * price);
-        }, 0);
-
         return {
-          date,
+          date: currentDate,
           portfolioValue,
           investedValue,
           cumulativeDividends,
@@ -115,6 +118,16 @@ export function usePortfolioHistory() {
       });
 
       console.log("Generated chart data points:", chartData.length);
+      
+      // Log quelques points de données pour vérification
+      const lastPoint = chartData[chartData.length - 1];
+      console.log("Last data point:", {
+        date: lastPoint.date,
+        portfolioValue: lastPoint.portfolioValue,
+        investedValue: lastPoint.investedValue,
+        cumulativeDividends: lastPoint.cumulativeDividends,
+      });
+
       return chartData;
     },
   });
