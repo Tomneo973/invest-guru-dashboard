@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -19,7 +20,7 @@ export function usePortfolioHistory() {
   } = useQuery({
     queryKey: ["portfolio-history"],
     queryFn: async () => {
-      // Mettre à jour les holdings quotidiens
+      // 1. Mettre à jour la composition quotidienne du portfolio
       console.log("Updating daily holdings...");
       const { error: holdingsError } = await supabase.rpc(
         "update_portfolio_daily_holdings"
@@ -29,7 +30,7 @@ export function usePortfolioHistory() {
         throw holdingsError;
       }
 
-      // Mettre à jour l'historique du portfolio
+      // 2. Mettre à jour l'historique des valeurs du portfolio
       console.log("Updating portfolio history...");
       const { error: historyError } = await supabase.rpc(
         "update_portfolio_history"
@@ -39,98 +40,91 @@ export function usePortfolioHistory() {
         throw historyError;
       }
 
-      // Récupérer les transactions pour le calcul de la valeur investie
+      // 3. Récupérer les valeurs historiques calculées
+      const { data: portfolioHistory, error: historyFetchError } = await supabase
+        .from("portfolio_history")
+        .select("*")
+        .order("date", { ascending: true });
+
+      if (historyFetchError) throw historyFetchError;
+
+      // 4. Récupérer toutes les transactions pour le calcul des montants investis
       const { data: transactions, error: transactionsError } = await supabase
         .from("transactions")
         .select("*")
         .order("date", { ascending: true });
 
-      if (transactionsError) {
-        console.error("Error fetching transactions:", transactionsError);
-        throw transactionsError;
-      }
+      if (transactionsError) throw transactionsError;
 
-      // Récupérer l'historique du portfolio pour la valeur réelle
-      const { data: history, error: portfolioHistoryError } = await supabase
-        .from("portfolio_history")
-        .select("*")
-        .order("date", { ascending: true });
-
-      if (portfolioHistoryError) {
-        console.error("Error fetching portfolio history:", portfolioHistoryError);
-        throw portfolioHistoryError;
-      }
-
-      // Récupérer les dividendes
+      // 5. Récupérer tous les dividendes
       const { data: dividends, error: dividendsError } = await supabase
         .from("dividends")
         .select("*")
         .order("date", { ascending: true });
 
-      if (dividendsError) {
-        console.error("Error fetching dividends:", dividendsError);
-        throw dividendsError;
-      }
+      if (dividendsError) throw dividendsError;
 
-      // S'assurer que nous avons des données jusqu'à aujourd'hui
-      const today = new Date().toISOString().split('T')[0];
-      const allDates = [...new Set([
-        ...(transactions?.map(t => t.date) || []),
-        ...(history?.map(h => h.date) || []),
-        ...(dividends?.map(d => d.date) || []),
-        today // Ajouter la date d'aujourd'hui
-      ])].sort();
+      // 6. Créer un ensemble de toutes les dates
+      const allDates = new Set([
+        ...portfolioHistory?.map(h => h.date) || [],
+        ...transactions?.map(t => t.date) || [],
+        ...dividends?.map(d => d.date) || [],
+      ]);
 
-      // Calculer les totaux pour chaque date
-      const chartData: PortfolioHistoryData[] = allDates.map(date => {
-        // Calculer la valeur investie jusqu'à cette date
-        const investedValue = transactions
-          ?.filter(t => t.date <= date)
-          .reduce((total, t) => {
-            if (t.type === 'buy') {
-              return total + (t.shares * t.price);
-            } else if (t.type === 'sell') {
-              return total - (t.shares * t.price);
-            }
-            return total;
-          }, 0) || 0;
+      // 7. Créer les données pour chaque date
+      const chartData: PortfolioHistoryData[] = Array.from(allDates)
+        .sort()
+        .map(date => {
+          // Trouver la valeur du portfolio pour cette date
+          const historyEntry = portfolioHistory?.find(h => h.date === date);
 
-        // Obtenir la valeur du portfolio pour cette date
-        const portfolioValue = history?.find(h => h.date === date)?.total_value || investedValue;
+          // Calculer le montant investi cumulé jusqu'à cette date
+          const investedValue = transactions
+            ?.filter(t => t.date <= date)
+            .reduce((total, t) => {
+              if (t.type === 'buy') {
+                return total + (t.shares * t.price);
+              } else if (t.type === 'sell') {
+                return total - (t.shares * t.price);
+              }
+              return total;
+            }, 0) || 0;
 
-        // Calculer les dividendes cumulés jusqu'à cette date
-        const cumulativeDividends = dividends
-          ?.filter(d => d.date <= date)
-          .reduce((total, d) => total + d.amount, 0) || 0;
+          // Calculer les dividendes cumulés jusqu'à cette date
+          const cumulativeDividends = dividends
+            ?.filter(d => d.date <= date)
+            .reduce((total, d) => total + d.amount, 0) || 0;
 
-        return {
-          date,
-          portfolioValue,
-          investedValue,
-          cumulativeDividends,
-        };
-      });
+          return {
+            date,
+            portfolioValue: historyEntry?.total_value || investedValue,
+            investedValue,
+            cumulativeDividends,
+          };
+        });
 
-      console.log("Generated chart data:", chartData);
+      console.log("Generated chart data points:", chartData.length);
+      console.log("Last data point:", chartData[chartData.length - 1]);
+      
       return chartData;
     },
   });
 
   const updateHistoricalData = async () => {
     try {
-      // Mettre à jour les prix historiques via la fonction edge
+      // 1. Mettre à jour les prix historiques
       const { error: updateError } = await supabase.functions.invoke(
         "update-historical-prices"
       );
-
       if (updateError) throw updateError;
 
-      // Mettre à jour les holdings et l'historique
+      // 2. Mettre à jour les holdings quotidiens
       const { error: holdingsError } = await supabase.rpc(
         "update_portfolio_daily_holdings"
       );
       if (holdingsError) throw holdingsError;
 
+      // 3. Mettre à jour l'historique du portfolio
       const { error: historyError } = await supabase.rpc(
         "update_portfolio_history"
       );
