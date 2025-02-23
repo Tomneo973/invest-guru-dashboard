@@ -1,21 +1,10 @@
-
-import { useState } from "react";
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type Holding = {
   symbol: string;
   shares: number;
   total_invested: number;
   current_value: number;
-  sector: string;
 };
 
 type StockTreemapChartProps = {
@@ -24,14 +13,13 @@ type StockTreemapChartProps = {
 
 type TreemapData = {
   name: string;
-  children?: TreemapData[];
-  size?: number;
+  size: number;
   value: number;
-  shares?: number;
-  gainLoss?: number;
-  gainLossPercentage?: number;
-  portfolioPercentage?: number;
-  averagePurchasePrice?: number;
+  shares: number;
+  gainLoss: number;
+  gainLossPercentage: number;
+  portfolioPercentage: number;
+  averagePurchasePrice: number;
 };
 
 type CustomTreemapContentProps = {
@@ -43,7 +31,6 @@ type CustomTreemapContentProps = {
   gainLoss?: number;
   gainLossPercentage?: number;
   portfolioPercentage?: number;
-  depth?: number;
 };
 
 const formatCurrency = (value: number): string => {
@@ -54,12 +41,15 @@ const formatCurrency = (value: number): string => {
 };
 
 const calculatePerformanceColor = (gainLoss: number = 0, gainLossPercentage: number = 0): string => {
+  // Normalize based on 50% gain/loss for more intense colors
   const intensity = Math.min(Math.abs(gainLossPercentage) / 50, 1);
   
   if (gainLoss > 0) {
+    // Green gradient for gains
     const g = Math.floor(200 + (255 - 200) * intensity);
     return `rgb(34, ${g}, 94, 0.9)`;
   } else {
+    // Red gradient for losses
     const r = Math.floor(220 + (255 - 220) * intensity);
     return `rgb(${r}, 56, 76, 0.9)`;
   }
@@ -73,17 +63,12 @@ const CustomTreemapContent = ({
   name = '', 
   gainLoss = 0, 
   gainLossPercentage = 0, 
-  portfolioPercentage = 0,
-  depth = 0
+  portfolioPercentage = 0 
 }: CustomTreemapContentProps) => {
   if (!width || !height || width < 0 || height < 0) return null;
 
-  const bgColor = depth === 1 
-    ? calculatePerformanceColor(gainLoss, gainLossPercentage)
-    : 'rgba(0, 0, 0, 0.1)';
-  const textColor = depth === 1 ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)';
-  const fontSize = depth === 1 ? 12 : 14;
-  const fontWeight = depth === 1 ? "normal" : "bold";
+  const bgColor = calculatePerformanceColor(gainLoss, gainLossPercentage);
+  const textColor = 'rgb(255, 255, 255)';
 
   return (
     <g>
@@ -100,26 +85,24 @@ const CustomTreemapContent = ({
         <>
           <text
             x={x + width / 2}
-            y={y + height / 2 - (depth === 1 ? 12 : 0)}
+            y={y + height / 2 - 12}
             textAnchor="middle"
             fill={textColor}
-            fontSize={fontSize}
-            fontWeight={fontWeight}
+            fontSize={14}
+            fontWeight="normal"
           >
             {name}
           </text>
-          {depth === 1 && (
-            <text
-              x={x + width / 2}
-              y={y + height / 2 + 12}
-              textAnchor="middle"
-              fill={textColor}
-              fontSize={12}
-              fontWeight="normal"
-            >
-              {`${portfolioPercentage.toFixed(1)}% (${gainLoss >= 0 ? '+' : ''}${gainLossPercentage.toFixed(1)}%)`}
-            </text>
-          )}
+          <text
+            x={x + width / 2}
+            y={y + height / 2 + 12}
+            textAnchor="middle"
+            fill={textColor}
+            fontSize={12}
+            fontWeight="normal"
+          >
+            {`${portfolioPercentage.toFixed(1)}% (${gainLoss >= 0 ? '+' : ''}${gainLossPercentage.toFixed(1)}%)`}
+          </text>
         </>
       )}
     </g>
@@ -131,16 +114,6 @@ const CustomTooltip = ({ active, payload }: any) => {
 
   const data = payload[0].payload;
   
-  if (!data.shares) { // C'est un secteur
-    return (
-      <div className="bg-white/95 p-3 rounded-lg shadow-lg border border-gray-200">
-        <p className="font-semibold mb-2">Secteur : {data.name}</p>
-        <p>Valeur totale: {formatCurrency(data.value || 0)}</p>
-        <p>Part du portfolio: {(data.portfolioPercentage || 0).toFixed(1)}%</p>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white/95 p-3 rounded-lg shadow-lg border border-gray-200">
       <p className="font-semibold mb-2">{data.name}</p>
@@ -159,114 +132,44 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
-  const [selectedSector, setSelectedSector] = useState<string>("all");
   const totalPortfolioValue = holdings.reduce((sum, holding) => sum + holding.current_value, 0);
 
-  // Organiser les données par secteur
-  const sectorMap = holdings.reduce((acc, holding) => {
-    const sector = holding.sector || "Non catégorisé";
-    if (!acc[sector]) {
-      acc[sector] = [];
-    }
-    acc[sector].push(holding);
-    return acc;
-  }, {} as Record<string, Holding[]>);
+  const data: TreemapData[] = holdings
+    .map((holding) => {
+      const gainLoss = holding.current_value - holding.total_invested;
+      const gainLossPercentage = holding.total_invested > 0 
+        ? (gainLoss / holding.total_invested) * 100 
+        : 0;
+      const portfolioPercentage = totalPortfolioValue > 0 
+        ? (holding.current_value / totalPortfolioValue) * 100 
+        : 0;
+      const averagePurchasePrice = holding.shares > 0 
+        ? holding.total_invested / holding.shares 
+        : 0;
 
-  // Calculer les données pour le treemap
-  const calculateTreemapData = (): TreemapData[] => {
-    if (selectedSector === "all") {
-      // Créer une structure hiérarchique avec les secteurs comme parents
-      return Object.entries(sectorMap).map(([sector, holdings]) => {
-        const sectorValue = holdings.reduce((sum, h) => sum + h.current_value, 0);
-        const sectorPercentage = (sectorValue / totalPortfolioValue) * 100;
-
-        return {
-          name: sector,
-          value: sectorValue,
-          portfolioPercentage: sectorPercentage,
-          children: holdings.map(holding => {
-            const gainLoss = holding.current_value - holding.total_invested;
-            const gainLossPercentage = holding.total_invested > 0 
-              ? (gainLoss / holding.total_invested) * 100 
-              : 0;
-            const portfolioPercentage = (holding.current_value / totalPortfolioValue) * 100;
-            const averagePurchasePrice = holding.shares > 0 
-              ? holding.total_invested / holding.shares 
-              : 0;
-
-            return {
-              name: holding.symbol,
-              value: holding.current_value,
-              shares: holding.shares,
-              gainLoss,
-              gainLossPercentage,
-              portfolioPercentage,
-              averagePurchasePrice,
-            };
-          }),
-        };
-      });
-    } else {
-      // Afficher seulement les holdings du secteur sélectionné
-      const sectorHoldings = sectorMap[selectedSector] || [];
-      return sectorHoldings.map(holding => {
-        const gainLoss = holding.current_value - holding.total_invested;
-        const gainLossPercentage = holding.total_invested > 0 
-          ? (gainLoss / holding.total_invested) * 100 
-          : 0;
-        const portfolioPercentage = (holding.current_value / totalPortfolioValue) * 100;
-        const averagePurchasePrice = holding.shares > 0 
-          ? holding.total_invested / holding.shares 
-          : 0;
-
-        return {
-          name: holding.symbol,
-          size: holding.current_value,
-          value: holding.current_value,
-          shares: holding.shares,
-          gainLoss,
-          gainLossPercentage,
-          portfolioPercentage,
-          averagePurchasePrice,
-        };
-      });
-    }
-  };
-
-  const data = calculateTreemapData();
+      return {
+        name: holding.symbol,
+        size: holding.current_value,
+        value: holding.current_value,
+        shares: holding.shares,
+        gainLoss,
+        gainLossPercentage,
+        portfolioPercentage,
+        averagePurchasePrice,
+      };
+    })
+    .sort((a, b) => b.value - a.value);
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Select
-          value={selectedSector}
-          onValueChange={setSelectedSector}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Sélectionner un secteur" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="all">Tous les secteurs</SelectItem>
-              {Object.keys(sectorMap).map(sector => (
-                <SelectItem key={sector} value={sector}>
-                  {sector}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-      <ResponsiveContainer width="100%" height={400}>
-        <Treemap
-          data={data}
-          dataKey="value"
-          stroke="#fff"
-          content={<CustomTreemapContent />}
-        >
-          <Tooltip content={<CustomTooltip />} />
-        </Treemap>
-      </ResponsiveContainer>
-    </div>
+    <ResponsiveContainer width="100%" height={400}>
+      <Treemap
+        data={data}
+        dataKey="size"
+        stroke="#fff"
+        content={<CustomTreemapContent />}
+      >
+        <Tooltip content={<CustomTooltip />} />
+      </Treemap>
+    </ResponsiveContainer>
   );
 }

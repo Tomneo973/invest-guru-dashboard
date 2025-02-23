@@ -31,6 +31,7 @@ export function PortfolioValueChart() {
 
   const filteredData = React.useMemo(() => {
     if (!historyData) return [];
+    console.log("Filtering data from", startDate, "with", historyData.length, "points");
     return historyData.filter(
       (data) => new Date(data.date) >= startDate
     );
