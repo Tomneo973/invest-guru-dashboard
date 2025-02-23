@@ -1,41 +1,29 @@
-
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { PortfolioHistoryData } from "./hooks/usePortfolioHistory";
 
 interface TooltipProps {
   active?: boolean;
-  payload?: Array<{
-    value: number;
-    dataKey: keyof PortfolioHistoryData;
-    name: string;
-  }>;
+  payload?: any[];
   label?: string;
 }
 
 export function PortfolioChartTooltip({ active, payload, label }: TooltipProps) {
-  if (!active || !payload?.length || !label) {
-    return null;
-  }
+  if (!active || !payload || !payload.length) return null;
 
   return (
-    <div className="rounded-lg border bg-background p-2 shadow-sm">
-      <div className="font-medium">
-        {format(parseISO(label), "dd MMMM yyyy", { locale: fr })}
-      </div>
-      <div className="mt-1 flex flex-col gap-0.5">
-        {payload.map((entry) => (
-          <div
-            key={entry.dataKey}
-            className="flex items-center justify-between gap-8"
-          >
-            <span className="text-muted-foreground text-xs">{entry.name}:</span>
-            <span className="font-medium tabular-nums">
-              {entry.value.toLocaleString()} €
-            </span>
-          </div>
-        ))}
-      </div>
+    <div className="bg-white p-4 border rounded-lg shadow-lg">
+      <p className="text-sm text-gray-600">
+        {format(parseISO(label || ''), "dd MMM yyyy", { locale: fr })}
+      </p>
+      <p className="text-lg font-semibold text-green-500">
+        Investi: {Number(payload[0].value).toLocaleString()} €
+      </p>
+      <p className="text-md text-blue-500">
+        Valeur: {Number(payload[1].value).toLocaleString()} €
+      </p>
+      <p className="text-md text-amber-500">
+        Dividendes: {Number(payload[2].value).toLocaleString()} €
+      </p>
     </div>
   );
 }
