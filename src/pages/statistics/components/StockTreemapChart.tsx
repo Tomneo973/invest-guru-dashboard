@@ -29,8 +29,10 @@ type TreemapData = {
   gainLoss?: number;
   gainLossPercentage?: number;
   portfolioPercentage?: number;
+  sectorPercentage?: number;
   shares?: number;
   averagePurchasePrice?: number;
+  sector?: string;
 };
 
 type CustomTreemapContentProps = {
@@ -42,6 +44,7 @@ type CustomTreemapContentProps = {
   gainLoss?: number;
   gainLossPercentage?: number;
   portfolioPercentage?: number;
+  sectorPercentage?: number;
   depth?: number;
   sector?: string;
 };
@@ -77,6 +80,7 @@ const CustomTreemapContent = ({
   gainLoss = 0, 
   gainLossPercentage = 0, 
   portfolioPercentage = 0,
+  sectorPercentage = 0,
   depth = 0,
   sector = 'Non catégorisé'
 }: CustomTreemapContentProps) => {
@@ -123,7 +127,7 @@ const CustomTreemapContent = ({
               fill={textColor}
               fontSize={12}
             >
-              {`${portfolioPercentage.toFixed(1)}% (${gainLoss >= 0 ? '+' : ''}${gainLossPercentage.toFixed(1)}%)`}
+              {`${portfolioPercentage.toFixed(1)}% / ${sectorPercentage.toFixed(1)}% (${gainLoss >= 0 ? '+' : ''}${gainLossPercentage.toFixed(1)}%)`}
             </text>
           )}
         </>
@@ -151,12 +155,13 @@ const CustomTooltip = ({ active, payload }: any) => {
     <div className="bg-white/95 p-3 rounded-lg shadow-lg border border-gray-200">
       <p className="font-semibold mb-2">{data.name}</p>
       <div className="space-y-1 text-sm">
-        <p>Valeur totale: {formatCurrency(data.value || 0)}</p>
+        <p>Valeur actuelle: {formatCurrency(data.value || 0)}</p>
+        <p>Part du portfolio: {(data.portfolioPercentage || 0).toFixed(1)}%</p>
+        <p>Part du secteur: {(data.sectorPercentage || 0).toFixed(1)}%</p>
         <p className={data.gainLoss >= 0 ? "text-green-600" : "text-red-600"}>
           Plus/Moins value: {formatCurrency(data.gainLoss || 0)} ({data.gainLoss >= 0 ? '+' : ''}
           {(data.gainLossPercentage || 0).toFixed(2)}%)
         </p>
-        <p>Part du portfolio: {(data.portfolioPercentage || 0).toFixed(1)}%</p>
         <p>PRU: {(data.averagePurchasePrice || 0).toFixed(2)} €</p>
         <p>Quantité: {data.shares || 0}</p>
       </div>
@@ -166,52 +171,68 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
   const [selectedSector, setSelectedSector] = useState<string>("all");
+  
+  // Calcul de la valeur totale du portfolio (une seule fois)
   const totalPortfolioValue = holdings.reduce((sum, holding) => sum + holding.current_value, 0);
 
-  // Organiser les données par secteur
+  // Organiser les données par secteur avec pré-calcul des valeurs
   const sectorMap = holdings.reduce((acc, holding) => {
     const sector = holding.sector || "Non catégorisé";
     if (!acc[sector]) {
-      acc[sector] = [];
+      acc[sector] = {
+        holdings: [],
+        totalValue: 0
+      };
     }
-    acc[sector].push(holding);
+    acc[sector].holdings.push(holding);
+    acc[sector].totalValue += holding.current_value;
     return acc;
-  }, {} as Record<string, Holding[]>);
+  }, {} as Record<string, { holdings: Holding[], totalValue: number }>);
 
   // Calculer les données pour le treemap
   const data = selectedSector === "all" 
-    ? Object.entries(sectorMap).map(([sector, holdings]) => ({
+    ? Object.entries(sectorMap).map(([sector, { holdings: sectorHoldings, totalValue: sectorValue }]) => ({
         name: sector,
-        value: holdings.reduce((sum, h) => sum + h.current_value, 0),
-        children: holdings.map(holding => ({
+        value: sectorValue,
+        portfolioPercentage: (sectorValue / totalPortfolioValue) * 100,
+        children: sectorHoldings.map(holding => {
+          const gainLoss = holding.current_value - holding.total_invested;
+          return {
+            name: holding.symbol,
+            value: holding.current_value,
+            shares: holding.shares,
+            gainLoss,
+            gainLossPercentage: holding.total_invested > 0 
+              ? (gainLoss / holding.total_invested) * 100 
+              : 0,
+            portfolioPercentage: (holding.current_value / totalPortfolioValue) * 100,
+            sectorPercentage: (holding.current_value / sectorValue) * 100,
+            averagePurchasePrice: holding.shares > 0 
+              ? holding.total_invested / holding.shares 
+              : 0,
+          };
+        }),
+        sector,
+      }))
+    : sectorMap[selectedSector]?.holdings.map(holding => {
+        const sectorValue = sectorMap[selectedSector].totalValue;
+        const gainLoss = holding.current_value - holding.total_invested;
+        return {
           name: holding.symbol,
           value: holding.current_value,
           shares: holding.shares,
-          gainLoss: holding.current_value - holding.total_invested,
+          gainLoss,
           gainLossPercentage: holding.total_invested > 0 
-            ? ((holding.current_value - holding.total_invested) / holding.total_invested) * 100 
+            ? (gainLoss / holding.total_invested) * 100 
             : 0,
           portfolioPercentage: (holding.current_value / totalPortfolioValue) * 100,
+          sectorPercentage: (holding.current_value / sectorValue) * 100,
           averagePurchasePrice: holding.shares > 0 
             ? holding.total_invested / holding.shares 
             : 0,
-        })),
-        sector,
-      }))
-    : sectorMap[selectedSector]?.map(holding => ({
-        name: holding.symbol,
-        value: holding.current_value,
-        shares: holding.shares,
-        gainLoss: holding.current_value - holding.total_invested,
-        gainLossPercentage: holding.total_invested > 0 
-          ? ((holding.current_value - holding.total_invested) / holding.total_invested) * 100 
-          : 0,
-        portfolioPercentage: (holding.current_value / totalPortfolioValue) * 100,
-        averagePurchasePrice: holding.shares > 0 
-          ? holding.total_invested / holding.shares 
-          : 0,
-        sector: selectedSector,
-      })) || [];
+          sector: selectedSector,
+        };
+      }) || [];
 
   return (
     <div className="space-y-4">
@@ -226,11 +247,13 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
           <SelectContent>
             <SelectGroup>
               <SelectItem value="all">Tous les secteurs</SelectItem>
-              {Object.keys(sectorMap).map(sector => (
-                <SelectItem key={sector} value={sector}>
-                  {sector}
-                </SelectItem>
-              ))}
+              {Object.entries(sectorMap)
+                .sort((a, b) => b[1].totalValue - a[1].totalValue)
+                .map(([sector]) => (
+                  <SelectItem key={sector} value={sector}>
+                    {sector}
+                  </SelectItem>
+                ))}
             </SelectGroup>
           </SelectContent>
         </Select>
