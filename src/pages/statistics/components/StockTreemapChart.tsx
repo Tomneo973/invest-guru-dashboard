@@ -25,12 +25,11 @@ type StockTreemapChartProps = {
 type TreemapData = {
   name: string;
   children?: TreemapData[];
-  size?: number;
   value: number;
-  shares?: number;
   gainLoss?: number;
   gainLossPercentage?: number;
   portfolioPercentage?: number;
+  shares?: number;
   averagePurchasePrice?: number;
 };
 
@@ -44,6 +43,22 @@ type CustomTreemapContentProps = {
   gainLossPercentage?: number;
   portfolioPercentage?: number;
   depth?: number;
+  sector?: string;
+};
+
+// Couleurs distinctes pour chaque secteur
+const SECTOR_COLORS = {
+  "Technology": "#3b82f6",
+  "Finance": "#22c55e",
+  "Healthcare": "#f59e0b",
+  "Consumer": "#ef4444",
+  "Energy": "#8b5cf6",
+  "Industry": "#ec4899",
+  "Materials": "#14b8a6",
+  "Real Estate": "#6366f1",
+  "Utilities": "#84cc16",
+  "Communication": "#f97316",
+  "Non catégorisé": "#94a3b8"
 };
 
 const formatCurrency = (value: number): string => {
@@ -51,18 +66,6 @@ const formatCurrency = (value: number): string => {
     style: 'currency',
     currency: 'EUR'
   }).format(value);
-};
-
-const calculatePerformanceColor = (gainLoss: number = 0, gainLossPercentage: number = 0): string => {
-  const intensity = Math.min(Math.abs(gainLossPercentage) / 50, 1);
-  
-  if (gainLoss > 0) {
-    const g = Math.floor(200 + (255 - 200) * intensity);
-    return `rgb(34, ${g}, 94, 0.9)`;
-  } else {
-    const r = Math.floor(220 + (255 - 220) * intensity);
-    return `rgb(${r}, 56, 76, 0.9)`;
-  }
 };
 
 const CustomTreemapContent = ({ 
@@ -74,14 +77,18 @@ const CustomTreemapContent = ({
   gainLoss = 0, 
   gainLossPercentage = 0, 
   portfolioPercentage = 0,
-  depth = 0
+  depth = 0,
+  sector = 'Non catégorisé'
 }: CustomTreemapContentProps) => {
   if (!width || !height || width < 0 || height < 0) return null;
 
   const bgColor = depth === 1 
-    ? calculatePerformanceColor(gainLoss, gainLossPercentage)
-    : 'rgba(0, 0, 0, 0.1)';
-  const textColor = depth === 1 ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)';
+    ? gainLoss >= 0 
+      ? `rgba(34, 197, 94, 0.9)` // Vert pour les gains
+      : `rgba(239, 68, 68, 0.9)` // Rouge pour les pertes
+    : `${SECTOR_COLORS[sector as keyof typeof SECTOR_COLORS] || SECTOR_COLORS["Non catégorisé"]}`;
+  
+  const textColor = 'rgb(255, 255, 255)';
   const fontSize = depth === 1 ? 12 : 14;
   const fontWeight = depth === 1 ? "normal" : "bold";
 
@@ -115,7 +122,6 @@ const CustomTreemapContent = ({
               textAnchor="middle"
               fill={textColor}
               fontSize={12}
-              fontWeight="normal"
             >
               {`${portfolioPercentage.toFixed(1)}% (${gainLoss >= 0 ? '+' : ''}${gainLossPercentage.toFixed(1)}%)`}
             </text>
@@ -173,67 +179,39 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
   }, {} as Record<string, Holding[]>);
 
   // Calculer les données pour le treemap
-  const calculateTreemapData = (): TreemapData[] => {
-    if (selectedSector === "all") {
-      // Créer une structure hiérarchique avec les secteurs comme parents
-      return Object.entries(sectorMap).map(([sector, holdings]) => {
-        const sectorValue = holdings.reduce((sum, h) => sum + h.current_value, 0);
-        const sectorPercentage = (sectorValue / totalPortfolioValue) * 100;
-
-        return {
-          name: sector,
-          value: sectorValue,
-          portfolioPercentage: sectorPercentage,
-          children: holdings.map(holding => {
-            const gainLoss = holding.current_value - holding.total_invested;
-            const gainLossPercentage = holding.total_invested > 0 
-              ? (gainLoss / holding.total_invested) * 100 
-              : 0;
-            const portfolioPercentage = (holding.current_value / totalPortfolioValue) * 100;
-            const averagePurchasePrice = holding.shares > 0 
-              ? holding.total_invested / holding.shares 
-              : 0;
-
-            return {
-              name: holding.symbol,
-              value: holding.current_value,
-              shares: holding.shares,
-              gainLoss,
-              gainLossPercentage,
-              portfolioPercentage,
-              averagePurchasePrice,
-            };
-          }),
-        };
-      });
-    } else {
-      // Afficher seulement les holdings du secteur sélectionné
-      const sectorHoldings = sectorMap[selectedSector] || [];
-      return sectorHoldings.map(holding => {
-        const gainLoss = holding.current_value - holding.total_invested;
-        const gainLossPercentage = holding.total_invested > 0 
-          ? (gainLoss / holding.total_invested) * 100 
-          : 0;
-        const portfolioPercentage = (holding.current_value / totalPortfolioValue) * 100;
-        const averagePurchasePrice = holding.shares > 0 
-          ? holding.total_invested / holding.shares 
-          : 0;
-
-        return {
+  const data = selectedSector === "all" 
+    ? Object.entries(sectorMap).map(([sector, holdings]) => ({
+        name: sector,
+        value: holdings.reduce((sum, h) => sum + h.current_value, 0),
+        children: holdings.map(holding => ({
           name: holding.symbol,
-          size: holding.current_value,
           value: holding.current_value,
           shares: holding.shares,
-          gainLoss,
-          gainLossPercentage,
-          portfolioPercentage,
-          averagePurchasePrice,
-        };
-      });
-    }
-  };
-
-  const data = calculateTreemapData();
+          gainLoss: holding.current_value - holding.total_invested,
+          gainLossPercentage: holding.total_invested > 0 
+            ? ((holding.current_value - holding.total_invested) / holding.total_invested) * 100 
+            : 0,
+          portfolioPercentage: (holding.current_value / totalPortfolioValue) * 100,
+          averagePurchasePrice: holding.shares > 0 
+            ? holding.total_invested / holding.shares 
+            : 0,
+        })),
+        sector,
+      }))
+    : sectorMap[selectedSector]?.map(holding => ({
+        name: holding.symbol,
+        value: holding.current_value,
+        shares: holding.shares,
+        gainLoss: holding.current_value - holding.total_invested,
+        gainLossPercentage: holding.total_invested > 0 
+          ? ((holding.current_value - holding.total_invested) / holding.total_invested) * 100 
+          : 0,
+        portfolioPercentage: (holding.current_value / totalPortfolioValue) * 100,
+        averagePurchasePrice: holding.shares > 0 
+          ? holding.total_invested / holding.shares 
+          : 0,
+        sector: selectedSector,
+      })) || [];
 
   return (
     <div className="space-y-4">
@@ -263,6 +241,8 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
           dataKey="value"
           stroke="#fff"
           content={<CustomTreemapContent />}
+          animationDuration={0}
+          isAnimationActive={false}
         >
           <Tooltip content={<CustomTooltip />} />
         </Treemap>
