@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -20,9 +19,8 @@ export function usePortfolioHistory() {
   } = useQuery({
     queryKey: ["portfolio-history"],
     queryFn: async () => {
-      console.log("Fetching portfolio history data...");
-
       // Mettre à jour les holdings quotidiens
+      console.log("Updating daily holdings...");
       const { error: holdingsError } = await supabase.rpc(
         "update_portfolio_daily_holdings"
       );
@@ -32,6 +30,7 @@ export function usePortfolioHistory() {
       }
 
       // Mettre à jour l'historique du portfolio
+      console.log("Updating portfolio history...");
       const { error: historyError } = await supabase.rpc(
         "update_portfolio_history"
       );
@@ -40,18 +39,7 @@ export function usePortfolioHistory() {
         throw historyError;
       }
 
-      // Récupérer tout l'historique du portfolio
-      const { data: history, error: portfolioHistoryError } = await supabase
-        .from("portfolio_history")
-        .select("*")
-        .order("date", { ascending: true });
-
-      if (portfolioHistoryError) {
-        console.error("Error fetching portfolio history:", portfolioHistoryError);
-        throw portfolioHistoryError;
-      }
-
-      // Récupérer les transactions
+      // Récupérer les transactions pour le calcul de la valeur investie
       const { data: transactions, error: transactionsError } = await supabase
         .from("transactions")
         .select("*")
@@ -60,6 +48,17 @@ export function usePortfolioHistory() {
       if (transactionsError) {
         console.error("Error fetching transactions:", transactionsError);
         throw transactionsError;
+      }
+
+      // Récupérer l'historique du portfolio pour la valeur réelle
+      const { data: history, error: portfolioHistoryError } = await supabase
+        .from("portfolio_history")
+        .select("*")
+        .order("date", { ascending: true });
+
+      if (portfolioHistoryError) {
+        console.error("Error fetching portfolio history:", portfolioHistoryError);
+        throw portfolioHistoryError;
       }
 
       // Récupérer les dividendes
@@ -73,25 +72,17 @@ export function usePortfolioHistory() {
         throw dividendsError;
       }
 
-      // S'assurer que nous avons des données pour chaque jour
-      const allDates = new Set<string>();
-      
-      // Ajouter toutes les dates depuis la première transaction jusqu'à aujourd'hui
-      if (transactions && transactions.length > 0) {
-        let currentDate = new Date(transactions[0].date);
-        const today = new Date();
-        
-        while (currentDate <= today) {
-          allDates.add(currentDate.toISOString().split('T')[0]);
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-      }
+      // S'assurer que nous avons des données jusqu'à aujourd'hui
+      const today = new Date().toISOString().split('T')[0];
+      const allDates = [...new Set([
+        ...(transactions?.map(t => t.date) || []),
+        ...(history?.map(h => h.date) || []),
+        ...(dividends?.map(d => d.date) || []),
+        today // Ajouter la date d'aujourd'hui
+      ])].sort();
 
-      // Convertir en tableau trié
-      const sortedDates = Array.from(allDates).sort();
-
-      // Calculer les valeurs cumulatives pour chaque date
-      const chartData: PortfolioHistoryData[] = sortedDates.map(date => {
+      // Calculer les totaux pour chaque date
+      const chartData: PortfolioHistoryData[] = allDates.map(date => {
         // Calculer la valeur investie jusqu'à cette date
         const investedValue = transactions
           ?.filter(t => t.date <= date)
@@ -105,8 +96,7 @@ export function usePortfolioHistory() {
           }, 0) || 0;
 
         // Obtenir la valeur du portfolio pour cette date
-        const historyEntry = history?.find(h => h.date === date);
-        const portfolioValue = historyEntry?.total_value ?? investedValue;
+        const portfolioValue = history?.find(h => h.date === date)?.total_value || investedValue;
 
         // Calculer les dividendes cumulés jusqu'à cette date
         const cumulativeDividends = dividends
@@ -121,7 +111,7 @@ export function usePortfolioHistory() {
         };
       });
 
-      console.log("Generated chart data points:", chartData.length);
+      console.log("Generated chart data:", chartData);
       return chartData;
     },
   });

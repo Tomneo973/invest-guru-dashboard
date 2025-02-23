@@ -1,4 +1,3 @@
-
 import { startOfYear, subDays, subMonths, subYears } from "date-fns";
 
 export type TimeRange = "7d" | "1m" | "3m" | "6m" | "ytd" | "3y" | "5y" | "all";
@@ -22,8 +21,8 @@ export function useTimeRangeFilter(range: TimeRange) {
     case "5y":
       return subYears(today, 5);
     case "all":
-      return new Date(0); // Retourner la date la plus ancienne possible
+      return new Date(0); // Return earliest possible date
     default:
-      return subMonths(today, 1); // Par défaut, 1 mois
+      return subMonths(today, 1); // Default to 1 month
   }
 }
