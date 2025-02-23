@@ -49,7 +49,7 @@ type CustomTreemapContentProps = {
   sector?: string;
 };
 
-// Couleurs distinctes pour chaque secteur
+// Couleurs distinctes pour chaque secteur avec une palette plus harmonieuse
 const SECTOR_COLORS = {
   "Technology": "#3b82f6",
   "Finance": "#22c55e",
@@ -104,8 +104,10 @@ const CustomTreemapContent = ({
         width={width}
         height={height}
         fill={bgColor}
-        stroke="rgba(255, 255, 255, 0.5)"
-        strokeWidth={2}
+        stroke="white"
+        strokeWidth={1}
+        rx={4}
+        ry={4}
       />
       {width > 50 && height > 50 && (
         <>
@@ -116,6 +118,7 @@ const CustomTreemapContent = ({
             fill={textColor}
             fontSize={fontSize}
             fontWeight={fontWeight}
+            className="select-none"
           >
             {name}
           </text>
@@ -126,6 +129,7 @@ const CustomTreemapContent = ({
               textAnchor="middle"
               fill={textColor}
               fontSize={12}
+              className="select-none"
             >
               {`${portfolioPercentage.toFixed(1)}% / ${sectorPercentage.toFixed(1)}% (${gainLoss >= 0 ? '+' : ''}${gainLossPercentage.toFixed(1)}%)`}
             </text>
@@ -143,7 +147,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   
   if (!data.shares) { // C'est un secteur
     return (
-      <div className="bg-white/95 p-3 rounded-lg shadow-lg border border-gray-200">
+      <div className="bg-card/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border">
         <p className="font-semibold mb-2">Secteur : {data.name}</p>
         <p>Valeur totale: {formatCurrency(data.value || 0)}</p>
         <p>Part du portfolio: {(data.portfolioPercentage || 0).toFixed(1)}%</p>
@@ -152,13 +156,13 @@ const CustomTooltip = ({ active, payload }: any) => {
   }
 
   return (
-    <div className="bg-white/95 p-3 rounded-lg shadow-lg border border-gray-200">
+    <div className="bg-card/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border">
       <p className="font-semibold mb-2">{data.name}</p>
-      <div className="space-y-1 text-sm">
+      <div className="space-y-1.5 text-sm">
         <p>Valeur actuelle: {formatCurrency(data.value || 0)}</p>
         <p>Part du portfolio: {(data.portfolioPercentage || 0).toFixed(1)}%</p>
         <p>Part du secteur: {(data.sectorPercentage || 0).toFixed(1)}%</p>
-        <p className={data.gainLoss >= 0 ? "text-green-600" : "text-red-600"}>
+        <p className={`font-medium ${data.gainLoss >= 0 ? "text-success" : "text-danger"}`}>
           Plus/Moins value: {formatCurrency(data.gainLoss || 0)} ({data.gainLoss >= 0 ? '+' : ''}
           {(data.gainLossPercentage || 0).toFixed(2)}%)
         </p>
@@ -235,8 +239,11 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
       }) || [];
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
+    <div className="space-y-4 p-2">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Total: {formatCurrency(totalPortfolioValue)}
+        </div>
         <Select
           value={selectedSector}
           onValueChange={setSelectedSector}
@@ -258,18 +265,20 @@ export function StockTreemapChart({ holdings }: StockTreemapChartProps) {
           </SelectContent>
         </Select>
       </div>
-      <ResponsiveContainer width="100%" height={400}>
-        <Treemap
-          data={data}
-          dataKey="value"
-          stroke="#fff"
-          content={<CustomTreemapContent />}
-          animationDuration={0}
-          isAnimationActive={false}
-        >
-          <Tooltip content={<CustomTooltip />} />
-        </Treemap>
-      </ResponsiveContainer>
+      <div className="rounded-lg border bg-card p-1">
+        <ResponsiveContainer width="100%" height={400}>
+          <Treemap
+            data={data}
+            dataKey="value"
+            stroke="#fff"
+            content={<CustomTreemapContent />}
+            animationDuration={0}
+            isAnimationActive={false}
+          >
+            <Tooltip content={<CustomTooltip />} />
+          </Treemap>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
