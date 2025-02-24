@@ -113,8 +113,22 @@ export function usePortfolioHistory() {
         };
       });
 
+      // Ajouter la date d'aujourd'hui si elle n'est pas déjà présente
+      const todayStr = today.toISOString().split('T')[0];
+      if (!chartData.find(d => d.date === todayStr)) {
+        const lastEntry = chartData[chartData.length - 1];
+        if (lastEntry) {
+          chartData.push({
+            date: todayStr,
+            portfolioValue: lastEntry.portfolioValue,
+            investedValue: lastEntry.investedValue,
+            cumulativeDividends: lastEntry.cumulativeDividends,
+          });
+        }
+      }
+
       console.log("Generated chart data:", chartData);
-      return chartData;
+      return chartData.sort((a, b) => a.date.localeCompare(b.date));
     },
   });
 
