@@ -1,4 +1,3 @@
-
 import React from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -114,52 +113,42 @@ export function PortfolioValueChart() {
                   <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.1} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
               <XAxis
                 dataKey="date"
                 tickFormatter={(value) =>
                   format(parseISO(value), "dd MMM", { locale: fr })
                 }
                 stroke="#6B7280"
-                tick={{ fill: '#6B7280' }}
-                axisLine={{ stroke: '#374151', opacity: 0.2 }}
               />
               <YAxis
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`}
+                tickFormatter={(value) => `${value.toLocaleString()} €`}
                 stroke="#6B7280"
-                tick={{ fill: '#6B7280' }}
-                axisLine={{ stroke: '#374151', opacity: 0.2 }}
               />
               <Tooltip content={<PortfolioChartTooltip />} />
               <Area
                 type="monotone"
                 dataKey="investedValue"
                 stroke="#22c55e"
-                strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorInvested)"
                 name="Montant investi"
-                isAnimationActive={false}
               />
               <Area
                 type="monotone"
                 dataKey="portfolioValue"
                 stroke="#3b82f6"
-                strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorPortfolio)"
                 name="Valeur du portfolio"
-                isAnimationActive={false}
               />
               <Area
                 type="monotone"
                 dataKey="cumulativeDividends"
                 stroke="#eab308"
-                strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorDividends)"
                 name="Dividendes cumulés"
-                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>
