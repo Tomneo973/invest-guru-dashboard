@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { addDays, parseISO } from "date-fns";
 
 export interface PortfolioHistoryData {
   date: string;
@@ -66,13 +67,19 @@ export function usePortfolioHistory() {
         investedAmounts.set(t.date, runningInvestedAmount);
       });
 
-      // 2. Générer les données pour chaque jour de l'historique
-      const chartData: PortfolioHistoryData[] = [];
-      
-      // Utiliser toutes les dates de l'historique du portfolio
-      const allDates = [...new Set(history.map(h => h.date))].sort();
+      // 2. Générer une liste de toutes les dates entre la première et aujourd'hui
+      const firstDate = history.length > 0 ? parseISO(history[0].date) : new Date();
+      const today = new Date();
+      const allDates: string[] = [];
+      let currentDate = firstDate;
 
-      allDates.forEach(date => {
+      while (currentDate <= today) {
+        allDates.push(currentDate.toISOString().split('T')[0]);
+        currentDate = addDays(currentDate, 1);
+      }
+
+      // 3. Générer les données pour chaque jour
+      const chartData: PortfolioHistoryData[] = allDates.map(date => {
         // Trouver la dernière valeur investie connue jusqu'à cette date
         const lastInvestedAmount = Array.from(investedAmounts.entries())
           .filter(([transactionDate]) => transactionDate <= date)
@@ -84,32 +91,27 @@ export function usePortfolioHistory() {
         // Trouver la valeur du portfolio pour cette date
         const portfolioEntry = history.find(h => h.date === date);
         
+        // Si pas de valeur pour cette date, prendre la dernière valeur connue
+        let portfolioValue = portfolioEntry?.total_value;
+        if (!portfolioValue) {
+          const lastKnownValue = history
+            .filter(h => h.date <= date)
+            .sort((a, b) => b.date.localeCompare(a.date))[0];
+          portfolioValue = lastKnownValue?.total_value || lastInvestedAmount;
+        }
+
         // Calculer les dividendes cumulés jusqu'à cette date
         const cumulativeDividends = dividends
           .filter(d => d.date <= date)
           .reduce((total, d) => total + d.amount, 0);
 
-        chartData.push({
+        return {
           date,
-          portfolioValue: portfolioEntry?.total_value || lastInvestedAmount,
+          portfolioValue,
           investedValue: lastInvestedAmount,
           cumulativeDividends,
-        });
+        };
       });
-
-      // S'assurer que nous avons des données pour aujourd'hui
-      const today = new Date().toISOString().split('T')[0];
-      if (!chartData.find(d => d.date === today)) {
-        const lastEntry = chartData[chartData.length - 1];
-        if (lastEntry) {
-          chartData.push({
-            date: today,
-            portfolioValue: lastEntry.portfolioValue,
-            investedValue: lastEntry.investedValue,
-            cumulativeDividends: lastEntry.cumulativeDividends,
-          });
-        }
-      }
 
       console.log("Generated chart data:", chartData);
       return chartData;
