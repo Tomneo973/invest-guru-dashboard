@@ -53,42 +53,48 @@ export function usePortfolioHistory() {
       const history = historyResult.data;
       const dividends = dividendsResult.data;
 
-      // Obtenir toutes les dates uniques
-      const allDates = [...new Set([
-        ...transactions.map(t => t.date),
-        ...history.map(h => h.date),
-        ...dividends.map(d => d.date)
-      ])].sort();
+      // 1. Calculer les montants investis pour chaque date de transaction
+      const investedAmounts = new Map<string, number>();
+      let runningInvestedAmount = 0;
 
-      // Calculer les valeurs cumulatives pour chaque date
-      const chartData: PortfolioHistoryData[] = allDates.map(date => {
-        // Calculer la valeur investie jusqu'à cette date
-        const investedValue = transactions
-          .filter(t => t.date <= date)
-          .reduce((total, t) => {
-            if (t.type === 'buy') {
-              return total + (t.shares * t.price);
-            } else if (t.type === 'sell') {
-              return total - (t.shares * t.price);
-            }
-            return total;
-          }, 0);
+      transactions.forEach(t => {
+        if (t.type === 'buy') {
+          runningInvestedAmount += (t.shares * t.price);
+        } else if (t.type === 'sell') {
+          runningInvestedAmount -= (t.shares * t.price);
+        }
+        investedAmounts.set(t.date, runningInvestedAmount);
+      });
+
+      // 2. Générer les données pour chaque jour de l'historique
+      const chartData: PortfolioHistoryData[] = [];
+      
+      // Utiliser toutes les dates de l'historique du portfolio
+      const allDates = [...new Set(history.map(h => h.date))].sort();
+
+      allDates.forEach(date => {
+        // Trouver la dernière valeur investie connue jusqu'à cette date
+        const lastInvestedAmount = Array.from(investedAmounts.entries())
+          .filter(([transactionDate]) => transactionDate <= date)
+          .reduce((latest, current) => 
+            current[0] > latest[0] ? current : latest,
+            ['0', 0]
+          )[1];
 
         // Trouver la valeur du portfolio pour cette date
         const portfolioEntry = history.find(h => h.date === date);
-        const portfolioValue = portfolioEntry ? portfolioEntry.total_value : investedValue;
-
+        
         // Calculer les dividendes cumulés jusqu'à cette date
         const cumulativeDividends = dividends
           .filter(d => d.date <= date)
           .reduce((total, d) => total + d.amount, 0);
 
-        return {
+        chartData.push({
           date,
-          portfolioValue,
-          investedValue,
+          portfolioValue: portfolioEntry?.total_value || lastInvestedAmount,
+          investedValue: lastInvestedAmount,
           cumulativeDividends,
-        };
+        });
       });
 
       // S'assurer que nous avons des données pour aujourd'hui
