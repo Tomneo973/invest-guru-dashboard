@@ -297,6 +297,12 @@ export type Database = {
           currency: string
         }[]
       }
+      is_market_holiday: {
+        Args: {
+          check_date: string
+        }
+        Returns: boolean
+      }
       update_daily_dividends: {
         Args: Record<PropertyKey, never>
         Returns: undefined
