@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -29,6 +29,13 @@ export function PortfolioValueChart() {
   const { historyData, isLoading, updateHistoricalData } = usePortfolioHistory();
   const [isUpdating, setIsUpdating] = React.useState(false);
   const startDate = useTimeRangeFilter(selectedRange);
+
+  // Forcer la mise à jour si aucune donnée n'est disponible
+  useEffect(() => {
+    if (!isLoading && (!historyData || historyData.length === 0)) {
+      handleUpdateHistoricalData();
+    }
+  }, [isLoading, historyData]);
 
   const filteredData = React.useMemo(() => {
     if (!historyData) return [];
@@ -64,12 +71,27 @@ export function PortfolioValueChart() {
   if (!filteredData?.length) {
     return (
       <Card className="w-full">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>Évolution du Portfolio</CardTitle>
+          <div className="flex items-center gap-4">
+            <TimeRangeSelector
+              selectedRange={selectedRange}
+              onRangeChange={setSelectedRange}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUpdateHistoricalData}
+              disabled={isUpdating}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
+              Mettre à jour
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
-            Aucune donnée disponible
+            {isUpdating ? "Mise à jour des données..." : "Aucune donnée disponible"}
           </div>
         </CardContent>
       </Card>
