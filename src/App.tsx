@@ -1,9 +1,11 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
+import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import TransactionsPage from "./pages/transactions/TransactionsPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
@@ -14,7 +16,7 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = true;
-  return isAuthenticated ? children : <Navigate to="/" />;
+  return isAuthenticated ? children : <Navigate to="/auth" />;
 };
 
 const LayoutRoute = ({ children }: { children: React.ReactNode }) => (
@@ -30,7 +32,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/auth" element={<Index />} />
           <Route
             path="/dashboard"
             element={
