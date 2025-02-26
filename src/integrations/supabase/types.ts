@@ -50,6 +50,30 @@ export type Database = {
           },
         ]
       }
+      portfolio_daily_dividends: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          total_dividends: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          total_dividends: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          total_dividends?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       portfolio_daily_holdings: {
         Row: {
           created_at: string
@@ -84,6 +108,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      portfolio_daily_invested: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          total_invested: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          total_invested: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          total_invested?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_daily_values: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          total_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          total_value: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          total_value?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       portfolio_history: {
         Row: {
@@ -224,6 +296,18 @@ export type Database = {
           sector: string
           currency: string
         }[]
+      }
+      update_daily_dividends: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_daily_invested: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_daily_portfolio_values: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_portfolio_daily_holdings: {
         Args: Record<PropertyKey, never>
