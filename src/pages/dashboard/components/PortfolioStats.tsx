@@ -117,22 +117,22 @@ export function PortfolioStats({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{convertedValue.toLocaleString()} {selectedCurrency}</div>
-            <div className="grid grid-cols-2 gap-1 mt-2 text-xs text-muted-foreground">
+            <div className="mt-2 text-xs text-muted-foreground">
               {currencyAmounts.map(({ currency, amount }) => (
-                <div key={currency} className="flex justify-between">
-                  <span>{currency}:</span>
-                  <span>{amount.toLocaleString()} {currency}</span>
+                <div key={currency} className="flex justify-between border-b border-gray-100 py-1">
+                  <span className="text-left">{currency}:</span>
+                  <span className="text-right">{amount.toLocaleString()} {currency}</span>
                 </div>
               ))}
             </div>
             <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-muted-foreground">
               <div className="font-medium mb-1">Taux de change (1 {selectedCurrency} =)</div>
-              <div className="grid grid-cols-2 gap-1">
+              <div>
                 {exchangeRates.map(({ currency, rate }) => (
                   currency !== selectedCurrency && (
-                    <div key={currency} className="flex justify-between">
-                      <span>{currency}:</span>
-                      <span>{(1/rate).toFixed(4)} {currency}</span>
+                    <div key={currency} className="flex justify-between py-1">
+                      <span className="text-left">{currency}:</span>
+                      <span className="text-right">{(1/rate).toFixed(4)} {currency}</span>
                     </div>
                   )
                 ))}
