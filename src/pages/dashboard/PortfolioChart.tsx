@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,6 +54,20 @@ export function PortfolioChart() {
     .sort((a, b) => a.returnPercentage - b.returnPercentage)
     .slice(0, 5);
 
+  // Calcul des montants par devise
+  const currencyAmounts = holdings?.reduce((acc, holding) => {
+    const currency = holding.currency;
+    const existingCurrency = acc.find(item => item.currency === currency);
+    
+    if (existingCurrency) {
+      existingCurrency.amount += holding.current_value;
+    } else {
+      acc.push({ currency, amount: holding.current_value });
+    }
+    
+    return acc;
+  }, [] as Array<{ currency: string; amount: number }>) || [];
+
   return (
     <div className="w-full space-y-8">
       <PortfolioStats
@@ -63,6 +78,7 @@ export function PortfolioChart() {
         numberOfPositions={numberOfPositions}
         top5Returns={top5Returns}
         flop5Returns={flop5Returns}
+        currencyAmounts={currencyAmounts}
       />
       <PortfolioValueChart />
     </div>
