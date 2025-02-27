@@ -1,5 +1,6 @@
+
 import { Link, useLocation } from "react-router-dom";
-import { ChartBar, LineChart, DollarSign, LayoutDashboard } from "lucide-react";
+import { ChartBar, LineChart, DollarSign, LayoutDashboard, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -7,6 +8,7 @@ const menuItems = [
   { icon: LineChart, label: "Transactions", path: "/transactions" },
   { icon: ChartBar, label: "Statistiques", path: "/statistics" },
   { icon: DollarSign, label: "Dividendes", path: "/dividends" },
+  { icon: Search, label: "Analyse d'action", path: "/stock-analysis" },
 ];
 
 interface SidebarProps {

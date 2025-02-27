@@ -11,6 +11,7 @@ import TransactionsPage from "./pages/transactions/TransactionsPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import StatisticsPage from "./pages/statistics/StatisticsPage";
 import DividendsPage from "./pages/dividends/DividendsPage";
+import StockAnalysisPage from "./pages/stock-analysis/StockAnalysisPage";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,14 @@ const App = () => (
             element={
               <LayoutRoute>
                 <DividendsPage />
+              </LayoutRoute>
+            }
+          />
+          <Route
+            path="/stock-analysis"
+            element={
+              <LayoutRoute>
+                <StockAnalysisPage />
               </LayoutRoute>
             }
           />
