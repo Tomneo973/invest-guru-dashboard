@@ -38,7 +38,7 @@ const Landing = () => {
             <div className="text-xl font-semibold">Portfolio Tracker</div>
             <Button 
               variant="default"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/auth")}
               className="bg-black hover:bg-gray-800"
             >
               Se connecter
@@ -60,7 +60,7 @@ const Landing = () => {
             </p>
             <Button 
               size="lg"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/auth")}
               className="bg-black hover:bg-gray-800"
             >
               Commencer gratuitement
@@ -129,7 +129,7 @@ const Landing = () => {
           <Button 
             size="lg" 
             variant="outline"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/auth")}
             className="bg-white text-black hover:bg-gray-100"
           >
             Créer un compte gratuitement
