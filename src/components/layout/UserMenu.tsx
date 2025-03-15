@@ -7,15 +7,42 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect } from "react";
 
 export const UserMenu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [userInitials, setUserInitials] = useState("JD");
+  const [avatarUrl, setAvatarUrl] = useState("");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        if (user.email) {
+          setUserInitials(user.email.substring(0, 2).toUpperCase());
+        }
+        
+        // Récupérer l'URL de l'avatar depuis le profil de l'utilisateur
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .eq("id", user.id)
+          .single();
+          
+        if (profileData?.avatar_url) {
+          setAvatarUrl(profileData.avatar_url);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -42,8 +69,9 @@ export const UserMenu = () => {
     <DropdownMenu>
       <DropdownMenuTrigger className="outline-none">
         <Avatar className="hover:ring-2 hover:ring-gray-200 transition-all">
+          <AvatarImage src={avatarUrl} />
           <AvatarFallback className="bg-gray-100 text-gray-700">
-            JD
+            {userInitials}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
