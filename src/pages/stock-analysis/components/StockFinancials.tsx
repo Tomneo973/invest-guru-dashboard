@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { StockFinancialData } from "@/services/stockAnalysis";
 
 interface StockFinancialsProps {
@@ -30,12 +31,108 @@ export function StockFinancials({ data }: StockFinancialsProps) {
     { label: "Recommandation", value: data.recommendation || "N/A" },
   ];
 
+  // Fonction pour obtenir la couleur en fonction du score
+  const getScoreColor = (score: number) => {
+    if (score >= 15) return "text-green-600";
+    if (score >= 10) return "text-amber-600";
+    return "text-red-600";
+  };
+
+  // Fonction pour obtenir la couleur de la barre de progression
+  const getProgressColor = (score: number) => {
+    if (score >= 15) return "bg-green-600";
+    if (score >= 10) return "bg-amber-600";
+    return "bg-red-600";
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Informations financières - {data.name} ({data.symbol})</CardTitle>
+        <CardTitle className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <span>Informations financières - {data.name} ({data.symbol})</span>
+          {data.score !== undefined && (
+            <div className="mt-2 md:mt-0 flex items-center">
+              <span className={`text-xl font-bold ${getScoreColor(data.score)}`}>
+                {data.score}/20
+              </span>
+              <span className="ml-2 text-sm text-gray-500">
+                {data.score >= 15 ? "Très recommandé" : 
+                 data.score >= 10 ? "Potentiellement intéressant" : 
+                 "Non recommandé"}
+              </span>
+            </div>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
+        {data.scoreDetails && (
+          <div className="mb-6 space-y-4">
+            <h3 className="font-semibold text-lg">Détail du score</h3>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Valeur (sous/surévaluation)</span>
+                  <span className="text-sm">{data.scoreDetails.valueScore}/4</span>
+                </div>
+                <Progress value={data.scoreDetails.valueScore * 25} className="h-2">
+                  <div 
+                    className={`h-full ${getProgressColor(data.scoreDetails.valueScore * 5)}`} 
+                    style={{ width: `${data.scoreDetails.valueScore * 25}%` }}
+                  ></div>
+                </Progress>
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Croissance</span>
+                  <span className="text-sm">{data.scoreDetails.growthScore}/4</span>
+                </div>
+                <Progress value={data.scoreDetails.growthScore * 25} className="h-2">
+                  <div 
+                    className={`h-full ${getProgressColor(data.scoreDetails.growthScore * 5)}`} 
+                    style={{ width: `${data.scoreDetails.growthScore * 25}%` }}
+                  ></div>
+                </Progress>
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Rentabilité</span>
+                  <span className="text-sm">{data.scoreDetails.profitabilityScore}/4</span>
+                </div>
+                <Progress value={data.scoreDetails.profitabilityScore * 25} className="h-2">
+                  <div 
+                    className={`h-full ${getProgressColor(data.scoreDetails.profitabilityScore * 5)}`} 
+                    style={{ width: `${data.scoreDetails.profitabilityScore * 25}%` }}
+                  ></div>
+                </Progress>
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Dividendes</span>
+                  <span className="text-sm">{data.scoreDetails.dividendScore}/4</span>
+                </div>
+                <Progress value={data.scoreDetails.dividendScore * 25} className="h-2">
+                  <div 
+                    className={`h-full ${getProgressColor(data.scoreDetails.dividendScore * 5)}`} 
+                    style={{ width: `${data.scoreDetails.dividendScore * 25}%` }}
+                  ></div>
+                </Progress>
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Momentum</span>
+                  <span className="text-sm">{data.scoreDetails.momentumScore}/4</span>
+                </div>
+                <Progress value={data.scoreDetails.momentumScore * 25} className="h-2">
+                  <div 
+                    className={`h-full ${getProgressColor(data.scoreDetails.momentumScore * 5)}`} 
+                    style={{ width: `${data.scoreDetails.momentumScore * 25}%` }}
+                  ></div>
+                </Progress>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {financialMetrics.map((metric, index) => (
             <div key={index} className="flex justify-between border-b border-gray-100 py-2">

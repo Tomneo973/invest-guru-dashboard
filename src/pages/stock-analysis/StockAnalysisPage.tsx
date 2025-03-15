@@ -46,6 +46,22 @@ export default function StockAnalysisPage() {
   const isLoading = isLoadingFinancials || isLoadingHistorical;
   const error = financialsError || historicalError;
 
+  // Fonction pour obtenir la classe de couleur en fonction du score
+  const getScoreColorClass = (score?: number) => {
+    if (!score) return "";
+    if (score >= 15) return "bg-green-100 border-green-500 text-green-800";
+    if (score >= 10) return "bg-amber-100 border-amber-500 text-amber-800";
+    return "bg-red-100 border-red-500 text-red-800";
+  };
+
+  // Fonction pour obtenir le texte de recommandation
+  const getRecommendationText = (score?: number) => {
+    if (!score) return "";
+    if (score >= 15) return "Très recommandé pour investissement";
+    if (score >= 10) return "Potentiellement intéressant, analyse approfondie recommandée";
+    return "Non recommandé selon nos critères";
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Analyse d'action</h1>
@@ -71,6 +87,20 @@ export default function StockAnalysisPage() {
       
       {financials && !isLoading && !error && (
         <div className="space-y-6">
+          {financials.score !== undefined && (
+            <div className={`p-4 border-l-4 rounded ${getScoreColorClass(financials.score)}`}>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">{financials.name} ({financials.symbol})</h3>
+                  <p>{getRecommendationText(financials.score)}</p>
+                </div>
+                <div className="mt-2 md:mt-0">
+                  <span className="text-2xl font-bold">{financials.score}/20</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <StockFinancials data={financials} />
           
           {historicalPrices && historicalPrices.length > 0 && (
