@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -122,16 +123,25 @@ export type Database = {
           created_at: string
           id: string
           updated_at: string
+          avatar_url?: string
+          birthday?: string
+          country?: string
         }
         Insert: {
           created_at?: string
           id: string
           updated_at?: string
+          avatar_url?: string
+          birthday?: string
+          country?: string
         }
         Update: {
           created_at?: string
           id?: string
           updated_at?: string
+          avatar_url?: string
+          birthday?: string
+          country?: string
         }
         Relationships: []
       }

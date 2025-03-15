@@ -29,7 +29,7 @@ export const UserMenu = () => {
         }
         
         // Récupérer l'URL de l'avatar depuis le profil de l'utilisateur
-        const { data: profileData } = await supabase
+        const { data: profileData, error } = await supabase
           .from("profiles")
           .select("avatar_url")
           .eq("id", user.id)

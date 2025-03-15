@@ -63,7 +63,7 @@ export default function ProfilePage() {
         setNewEmail(user.email || "");
 
         // Récupérer les informations du profil
-        const { data: profileData } = await supabase
+        const { data: profileData, error } = await supabase
           .from("profiles")
           .select("created_at, birthday, country, avatar_url")
           .eq("id", user.id)
@@ -80,6 +80,12 @@ export default function ProfilePage() {
             country: profileData.country || "",
             avatar_url: profileData.avatar_url || "",
           });
+
+          const profileCreatedDate = profileData.created_at ? new Date(profileData.created_at) : null;
+          setStats(prev => ({
+            ...prev,
+            profileCreatedAt: profileCreatedDate
+          }));
         }
 
         // Récupérer les statistiques
@@ -129,7 +135,7 @@ export default function ProfilePage() {
         id: user.id,
         birthday,
         country,
-        updated_at: new Date(),
+        updated_at: new Date().toISOString(), // Convertir en string ISO
       };
       
       // Upload de l'avatar si un fichier est sélectionné
