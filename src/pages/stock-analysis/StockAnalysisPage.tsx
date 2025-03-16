@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,13 +22,15 @@ export default function StockAnalysisPage() {
     queryFn: () => (symbol ? getStockFinancials(symbol) : Promise.reject("No symbol provided")),
     enabled: !!symbol,
     retry: 1,
-    onError: (error) => {
-      console.error("Error fetching financials:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: `Impossible de récupérer les données financières pour ${symbol}. Veuillez réessayer.`,
-      });
+    meta: {
+      onError: (error: any) => {
+        console.error("Error fetching financials:", error);
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: `Impossible de récupérer les données financières pour ${symbol}. Veuillez réessayer.`,
+        });
+      },
     },
   });
 
@@ -43,13 +44,15 @@ export default function StockAnalysisPage() {
     queryFn: () => (symbol ? getHistoricalPrices(symbol) : Promise.reject("No symbol provided")),
     enabled: !!symbol,
     retry: 1,
-    onError: (error) => {
-      console.error("Error fetching historical prices:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: `Impossible de récupérer l'historique des prix pour ${symbol}.`,
-      });
+    meta: {
+      onError: (error: any) => {
+        console.error("Error fetching historical prices:", error);
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: `Impossible de récupérer l'historique des prix pour ${symbol}.`,
+        });
+      },
     },
   });
 
@@ -58,7 +61,6 @@ export default function StockAnalysisPage() {
     setSymbol(formattedSymbol);
     
     if (symbol === formattedSymbol) {
-      // Si c'est le même symbole, on force le rafraîchissement
       refetchFinancials();
       refetchHistorical();
     }
@@ -73,7 +75,6 @@ export default function StockAnalysisPage() {
   const error = financialsError || historicalError;
   const hasFinancialsError = financials?.error || financialsError;
 
-  // Fonction pour obtenir la classe de couleur en fonction du score
   const getScoreColorClass = (score?: number) => {
     if (!score) return "";
     if (score >= 15) return "bg-green-100 border-green-500 text-green-800";
@@ -81,7 +82,6 @@ export default function StockAnalysisPage() {
     return "bg-red-100 border-red-500 text-red-800";
   };
 
-  // Fonction pour obtenir le texte de recommandation
   const getRecommendationText = (score?: number) => {
     if (!score) return "";
     if (score >= 15) return "Très recommandé pour investissement";
