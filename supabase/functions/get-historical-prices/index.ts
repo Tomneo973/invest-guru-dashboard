@@ -1,5 +1,5 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,107 +7,74 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { symbols, startDate } = await req.json();
-    console.log('Fetching historical prices for:', symbols, 'since:', startDate);
+    const { symbol, period, interval } = await req.json();
+    console.log('Fetching historical prices for:', symbol, 'period:', period, 'interval:', interval);
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    // Fetch historical data from Yahoo Finance
+    const response = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval || '1mo'}&range=${period || '5y'}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+        },
+      }
     );
 
-    // Check existing prices in database
-    const { data: existingPrices } = await supabase
-      .from('stock_prices')
-      .select('*')
-      .in('symbol', symbols)
-      .gte('date', startDate)
-      .order('date', { ascending: true });
-
-    // Get missing dates for each symbol
-    const missingPrices = [];
-    for (const symbol of symbols) {
-      const symbolPrices = existingPrices?.filter(p => p.symbol === symbol) || [];
-      if (symbolPrices.length === 0) {
-        missingPrices.push({ symbol, startDate });
-      }
+    if (!response.ok) {
+      console.error(`Yahoo Finance API error: ${response.status}`);
+      throw new Error(`API error: ${response.status}`);
     }
 
-    // Fetch missing prices from Yahoo Finance
-    for (const { symbol, startDate } of missingPrices) {
-      console.log('Fetching prices for:', symbol);
-      const response = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5y`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        console.error(`Error fetching data for ${symbol}:`, response.status);
-        continue;
-      }
-
-      const data = await response.json();
-      if (!data.chart?.result?.[0]) {
-        console.error(`No data found for ${symbol}`);
-        continue;
-      }
-
-      const { timestamp, indicators } = data.chart.result[0];
-      const prices = indicators.quote[0].close;
-      const currency = data.chart.result[0].meta.currency || 'USD';
-
-      // Prepare prices for insertion
-      const pricesToInsert = timestamp.map((ts: number, index: number) => ({
-        symbol,
-        date: new Date(ts * 1000).toISOString().split('T')[0],
-        closing_price: prices[index],
-        currency,
-      })).filter((p: any) => p.closing_price !== null);
-
-      // Insert prices in batches
-      if (pricesToInsert.length > 0) {
-        const { error } = await supabase
-          .from('stock_prices')
-          .upsert(pricesToInsert);
-
-        if (error) {
-          console.error(`Error inserting prices for ${symbol}:`, error);
-        }
-      }
+    const data = await response.json();
+    
+    if (data.chart.error) {
+      console.warn('Yahoo Finance returned error:', data.chart.error);
+      throw new Error(data.chart.error.description);
     }
 
-    // Return all prices (existing + newly fetched)
-    const { data: allPrices, error } = await supabase
-      .from('stock_prices')
-      .select('*')
-      .in('symbol', symbols)
-      .gte('date', startDate)
-      .order('date', { ascending: true });
+    const result = data.chart.result?.[0];
+    if (!result || !result.timestamp || !result.indicators?.quote?.[0]?.close) {
+      throw new Error("No data found");
+    }
 
-    if (error) throw error;
+    // Format the historical prices data
+    const timestamps = result.timestamp;
+    const prices = result.indicators.quote[0];
+    
+    const historicalPrices = timestamps.map((timestamp: number, index: number) => {
+      return {
+        date: new Date(timestamp * 1000).toISOString().split('T')[0],
+        open: prices.open?.[index] || 0,
+        high: prices.high?.[index] || 0,
+        low: prices.low?.[index] || 0,
+        close: prices.close?.[index] || 0,
+        volume: prices.volume?.[index] || 0
+      };
+    }).filter((price: any) => price.close !== null && price.close !== undefined);
 
     return new Response(
-      JSON.stringify(allPrices),
+      JSON.stringify({ prices: historicalPrices }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 200
       }
     );
   } catch (error) {
     console.error('Error in get-historical-prices function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
+      JSON.stringify({ 
+        error: error.message,
+        prices: []
+      }),
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: 200 // Return 200 to ensure the response reaches the client
       }
     );
   }

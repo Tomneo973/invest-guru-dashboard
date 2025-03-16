@@ -50,6 +50,7 @@ export interface HistoricalPrice {
 
 export async function getStockFinancials(symbol: string): Promise<StockFinancialData> {
   try {
+    console.log('Fetching financial data for:', symbol);
     // On utilise la fonction Cloud Supabase existante qui interroge Yahoo Finance
     const { data, error } = await supabase.functions.invoke('get-stock-financials', {
       body: { symbol }
@@ -70,6 +71,24 @@ export async function getStockFinancials(symbol: string): Promise<StockFinancial
         fiftyTwoWeekHigh: 0,
         fiftyTwoWeekLow: 0,
         error: error.message
+      };
+    }
+    
+    if (data.error) {
+      console.error(`Yahoo Finance API error for ${symbol}:`, data.error);
+      return {
+        symbol,
+        name: "",
+        currentPrice: 0,
+        currency: 'USD',
+        eps: 0,
+        peRatio: 0,
+        forwardPE: 0,
+        dividendYield: 0,
+        marketCap: 0,
+        fiftyTwoWeekHigh: 0,
+        fiftyTwoWeekLow: 0,
+        error: data.error
       };
     }
     
@@ -262,13 +281,19 @@ function calculateStockScore(data: any, fairPrice: number): {
 
 export async function getHistoricalPrices(symbol: string): Promise<HistoricalPrice[]> {
   try {
+    console.log('Fetching historical prices for:', symbol);
     // On utilise la fonction Cloud Supabase pour obtenir l'historique des prix
     const { data, error } = await supabase.functions.invoke('get-historical-prices', {
       body: { symbol, period: '5y', interval: '1mo' }
     });
 
     if (error) {
-      console.error(`Error fetching historical prices for ${symbol}:`, error);
+      console.error(`Error invoking get-historical-prices for ${symbol}:`, error);
+      return [];
+    }
+
+    if (data.error) {
+      console.error(`Error in get-historical-prices for ${symbol}:`, data.error);
       return [];
     }
 
