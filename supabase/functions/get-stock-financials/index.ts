@@ -45,7 +45,7 @@ serve(async (req) => {
 
     // Récupérer les données financières détaillées
     const summaryResponse = await fetch(
-      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics,assetProfile,price`,
+      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics,assetProfile,price,financialData,incomeStatementHistory,cashflowStatementHistory`,
       {
         headers: {
           'User-Agent': 'Mozilla/5.0',
@@ -69,9 +69,21 @@ serve(async (req) => {
     const keyStats = summary.defaultKeyStatistics || {};
     const profile = summary.assetProfile || {};
     const price = summary.price || {};
+    const financialData = summary.financialData || {};
+    const incomeStatement = summary.incomeStatementHistory?.incomeStatementHistory?.[0] || {};
+    const cashflowStatement = summary.cashflowStatementHistory?.cashflowStatements?.[0] || {};
+
+    // Extraire les données financières pour les critères de notation
+    const grossMargin = financialData.grossMargins?.raw || 0;
+    const revenueGrowth = financialData.revenueGrowth?.raw || 0;
+    const interestCoverage = financialData.interestCoverage?.raw || 0;
+    const debtToEquity = financialData.debtToEquity?.raw || 0;
+    const operatingCashflow = cashflowStatement.totalCashFromOperatingActivities?.raw || 0;
+    const totalRevenue = incomeStatement.totalRevenue?.raw || 1; // Pour éviter division par zéro
+    const operatingCashflowToSales = totalRevenue > 0 ? operatingCashflow / totalRevenue : 0;
 
     // Extraire les données financières
-    const financialData = {
+    const financialDataObj = {
       symbol: symbol,
       name: price.shortName || price.longName || symbol,
       currentPrice: quote.meta.regularMarketPrice,
@@ -89,11 +101,17 @@ serve(async (req) => {
       industry: profile.industry || null,
       targetMeanPrice: price.targetMeanPrice?.raw || null,
       recommendationMean: price.recommendationMean?.raw || null,
-      recommendation: price.recommendationKey || null
+      recommendation: price.recommendationKey || null,
+      // Nouvelles données financières
+      grossMargin: grossMargin,
+      revenueGrowth: revenueGrowth,
+      interestCoverage: interestCoverage,
+      debtToEquity: debtToEquity,
+      operatingCashflowToSales: operatingCashflowToSales
     };
 
     return new Response(
-      JSON.stringify(financialData),
+      JSON.stringify(financialDataObj),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
