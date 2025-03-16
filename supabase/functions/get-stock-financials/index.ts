@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const ALPHA_VANTAGE_API_KEY = Deno.env.get('ALPHA_VANTAGE_API_KEY') || 'demo';
+const ALPHAVANTAGE_URL = "https://www.alphavantage.co/query";
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -16,16 +19,138 @@ serve(async (req) => {
     const { symbol } = await req.json();
     console.log('Fetching stock financials for:', symbol);
 
-    // Récupérer les informations de base sur l'action avec en-têtes améliorés
+    // Try fetching from Alpha Vantage first
+    const companyOverview = await fetchCompanyOverview(symbol);
+    const quoteData = await fetchQuote(symbol);
+    
+    if (!companyOverview || !quoteData) {
+      console.log('Alpha Vantage data incomplete, trying Yahoo Finance as fallback');
+      return await fetchFromYahooFinance(symbol);
+    }
+    
+    // Format financial data from Alpha Vantage
+    const financialDataObj = {
+      symbol: symbol,
+      name: companyOverview.Name || symbol,
+      currentPrice: parseFloat(quoteData['05. price']) || 0,
+      currency: quoteData['8. currency'] || 'USD',
+      eps: parseFloat(companyOverview.EPS) || 0,
+      peRatio: parseFloat(companyOverview.PERatio) || 0,
+      forwardPE: parseFloat(companyOverview.ForwardPE) || 0,
+      dividendYield: parseFloat(companyOverview.DividendYield) || 0,
+      marketCap: parseFloat(companyOverview.MarketCapitalization) || 0,
+      fiftyTwoWeekHigh: parseFloat(companyOverview['52WeekHigh']) || 0,
+      fiftyTwoWeekLow: parseFloat(companyOverview['52WeekLow']) || 0,
+      bookValue: parseFloat(companyOverview.BookValue) || null,
+      priceToBook: parseFloat(companyOverview.PriceToBookRatio) || null,
+      sector: companyOverview.Sector || null,
+      industry: companyOverview.Industry || null,
+      targetMeanPrice: null, // Not available in Alpha Vantage
+      recommendationMean: null, // Not available in Alpha Vantage
+      recommendation: null, // Not available in Alpha Vantage
+      // Additional financial metrics
+      grossMargin: parseFloat(companyOverview.GrossProfitTTM) / parseFloat(companyOverview.RevenueTTM) || 0,
+      revenueGrowth: parseFloat(companyOverview.QuarterlyRevenueGrowthYOY) || 0,
+      interestCoverage: 1, // Not directly available in Alpha Vantage
+      debtToEquity: parseFloat(companyOverview.DebtToEquity) || 0,
+      operatingCashflowToSales: parseFloat(companyOverview.OperatingCashflow) / parseFloat(companyOverview.RevenueTTM) || 0
+    };
+
+    return new Response(
+      JSON.stringify(financialDataObj),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
+    );
+  } catch (error) {
+    console.error('Error in get-stock-financials function:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error.message 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 // Return 200 even for errors to ensure the response reaches the client
+      }
+    );
+  }
+});
+
+async function fetchCompanyOverview(symbol: string) {
+  try {
+    console.log('Fetching company overview from Alpha Vantage for:', symbol);
+    const response = await fetch(
+      `${ALPHAVANTAGE_URL}?function=OVERVIEW&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Alpha Vantage API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Check if we got valid data
+    if (!data.Symbol) {
+      console.warn('No company overview data found for symbol:', symbol);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching company overview from Alpha Vantage:', error);
+    return null;
+  }
+}
+
+async function fetchQuote(symbol: string) {
+  try {
+    console.log('Fetching quote from Alpha Vantage for:', symbol);
+    const response = await fetch(
+      `${ALPHAVANTAGE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Alpha Vantage API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Check if we got valid data
+    if (!data['Global Quote'] || !data['Global Quote']['01. symbol']) {
+      console.warn('No quote data found for symbol:', symbol);
+      return null;
+    }
+
+    return data['Global Quote'];
+  } catch (error) {
+    console.error('Error fetching quote from Alpha Vantage:', error);
+    return null;
+  }
+}
+
+async function fetchFromYahooFinance(symbol: string) {
+  try {
+    console.log('Fetching from Yahoo Finance as fallback for symbol:', symbol);
+    // Request headers for Yahoo Finance
     const requestHeaders = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
       'Origin': 'https://finance.yahoo.com',
       'Referer': 'https://finance.yahoo.com',
-      'Sec-Fetch-Dest': 'empty',
-      'Sec-Fetch-Mode': 'cors',
-      'Sec-Fetch-Site': 'same-site',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
     };
 
     const quoteResponse = await fetch(
@@ -34,14 +159,12 @@ serve(async (req) => {
     );
 
     if (!quoteResponse.ok) {
-      console.error(`Yahoo Finance API error: ${quoteResponse.status}`);
-      throw new Error(`API error: ${quoteResponse.status}`);
+      throw new Error(`Yahoo Finance API error: ${quoteResponse.status}`);
     }
 
     const quoteData = await quoteResponse.json();
     
     if (quoteData.chart.error) {
-      console.warn('Yahoo Finance returned error:', quoteData.chart.error);
       throw new Error(quoteData.chart.error.description);
     }
 
@@ -57,8 +180,7 @@ serve(async (req) => {
     );
 
     if (!summaryResponse.ok) {
-      console.error(`Yahoo Finance API error: ${summaryResponse.status}`);
-      throw new Error(`API error: ${summaryResponse.status}`);
+      throw new Error(`Yahoo Finance API error: ${summaryResponse.status}`);
     }
 
     const summaryData = await summaryResponse.json();
@@ -86,50 +208,40 @@ serve(async (req) => {
     const operatingCashflowToSales = totalRevenue > 0 ? operatingCashflow / totalRevenue : 0;
 
     // Extraire les données financières
-    const financialDataObj = {
-      symbol: symbol,
-      name: price.shortName || price.longName || symbol,
-      currentPrice: quote.meta.regularMarketPrice,
-      currency: quote.meta.currency || 'USD',
-      eps: keyStats.trailingEps?.raw || 0,
-      peRatio: summaryDetail.trailingPE?.raw || 0,
-      forwardPE: summaryDetail.forwardPE?.raw || 0,
-      dividendYield: summaryDetail.dividendYield?.raw || 0,
-      marketCap: summaryDetail.marketCap?.raw || 0,
-      fiftyTwoWeekHigh: summaryDetail.fiftyTwoWeekHigh?.raw || 0,
-      fiftyTwoWeekLow: summaryDetail.fiftyTwoWeekLow?.raw || 0,
-      bookValue: keyStats.bookValue?.raw || null,
-      priceToBook: keyStats.priceToBook?.raw || null,
-      sector: profile.sector || null,
-      industry: profile.industry || null,
-      targetMeanPrice: price.targetMeanPrice?.raw || null,
-      recommendationMean: price.recommendationMean?.raw || null,
-      recommendation: price.recommendationKey || null,
-      // Nouvelles données financières
-      grossMargin: grossMargin,
-      revenueGrowth: revenueGrowth,
-      interestCoverage: interestCoverage,
-      debtToEquity: debtToEquity,
-      operatingCashflowToSales: operatingCashflowToSales
-    };
-
     return new Response(
-      JSON.stringify(financialDataObj),
+      JSON.stringify({
+        symbol: symbol,
+        name: price.shortName || price.longName || symbol,
+        currentPrice: quote.meta.regularMarketPrice,
+        currency: quote.meta.currency || 'USD',
+        eps: keyStats.trailingEps?.raw || 0,
+        peRatio: summaryDetail.trailingPE?.raw || 0,
+        forwardPE: summaryDetail.forwardPE?.raw || 0,
+        dividendYield: summaryDetail.dividendYield?.raw || 0,
+        marketCap: summaryDetail.marketCap?.raw || 0,
+        fiftyTwoWeekHigh: summaryDetail.fiftyTwoWeekHigh?.raw || 0,
+        fiftyTwoWeekLow: summaryDetail.fiftyTwoWeekLow?.raw || 0,
+        bookValue: keyStats.bookValue?.raw || null,
+        priceToBook: keyStats.priceToBook?.raw || null,
+        sector: profile.sector || null,
+        industry: profile.industry || null,
+        targetMeanPrice: price.targetMeanPrice?.raw || null,
+        recommendationMean: price.recommendationMean?.raw || null,
+        recommendation: price.recommendationKey || null,
+        // Nouvelles données financières
+        grossMargin: grossMargin,
+        revenueGrowth: revenueGrowth,
+        interestCoverage: interestCoverage,
+        debtToEquity: debtToEquity,
+        operatingCashflowToSales: operatingCashflowToSales
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       }
     );
   } catch (error) {
-    console.error('Error in get-stock-financials function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 // Return 200 even for errors to ensure the response reaches the client
-      }
-    );
+    console.error('Error fetching from Yahoo Finance:', error);
+    throw error;
   }
-});
+}

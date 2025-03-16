@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const ALPHA_VANTAGE_API_KEY = Deno.env.get('ALPHA_VANTAGE_API_KEY') || 'demo';
+const ALPHAVANTAGE_URL = "https://www.alphavantage.co/query";
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,57 +16,18 @@ serve(async (req) => {
   }
 
   try {
-    const { symbol, period, interval } = await req.json();
+    const { symbol, period = '5y', interval = '1mo' } = await req.json();
     console.log('Fetching historical prices for:', symbol, 'period:', period, 'interval:', interval);
 
-    // Fetch historical data from Yahoo Finance with enhanced headers
-    const response = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval || '1mo'}&range=${period || '5y'}`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Origin': 'https://finance.yahoo.com',
-          'Referer': 'https://finance.yahoo.com',
-          'Sec-Fetch-Dest': 'empty',
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'same-site',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      console.error(`Yahoo Finance API error: ${response.status}`);
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    // First try with Alpha Vantage
+    let data = await fetchFromAlphaVantage(symbol);
+    let historicalPrices = formatAlphaVantageData(data);
     
-    if (data.chart.error) {
-      console.warn('Yahoo Finance returned error:', data.chart.error);
-      throw new Error(data.chart.error.description);
+    // If Alpha Vantage fails, try with Yahoo Finance as fallback
+    if (historicalPrices.length === 0) {
+      console.log('Alpha Vantage returned no data, trying Yahoo Finance as fallback');
+      historicalPrices = await fetchFromYahooFinance(symbol, period, interval);
     }
-
-    const result = data.chart.result?.[0];
-    if (!result || !result.timestamp || !result.indicators?.quote?.[0]?.close) {
-      throw new Error("No data found");
-    }
-
-    // Format the historical prices data
-    const timestamps = result.timestamp;
-    const prices = result.indicators.quote[0];
-    
-    const historicalPrices = timestamps.map((timestamp: number, index: number) => {
-      return {
-        date: new Date(timestamp * 1000).toISOString().split('T')[0],
-        open: prices.open?.[index] || 0,
-        high: prices.high?.[index] || 0,
-        low: prices.low?.[index] || 0,
-        close: prices.close?.[index] || 0,
-        volume: prices.volume?.[index] || 0
-      };
-    }).filter((price: any) => price.close !== null && price.close !== undefined);
 
     return new Response(
       JSON.stringify({ prices: historicalPrices }),
@@ -86,3 +50,98 @@ serve(async (req) => {
     );
   }
 });
+
+async function fetchFromAlphaVantage(symbol: string) {
+  try {
+    console.log('Fetching from Alpha Vantage for symbol:', symbol);
+    const response = await fetch(
+      `${ALPHAVANTAGE_URL}?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Alpha Vantage API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching from Alpha Vantage:', error);
+    return null;
+  }
+}
+
+function formatAlphaVantageData(data: any) {
+  if (!data || !data['Monthly Time Series']) {
+    return [];
+  }
+
+  const timeSeries = data['Monthly Time Series'];
+  const formattedData = Object.entries(timeSeries).map(([date, values]: [string, any]) => {
+    return {
+      date,
+      open: parseFloat(values['1. open']),
+      high: parseFloat(values['2. high']),
+      low: parseFloat(values['3. low']),
+      close: parseFloat(values['4. close']),
+      volume: parseFloat(values['5. volume'])
+    };
+  });
+
+  // Sort by date descending (newest first)
+  return formattedData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+async function fetchFromYahooFinance(symbol: string, period: string, interval: string) {
+  try {
+    console.log('Fetching from Yahoo Finance as fallback for symbol:', symbol);
+    const response = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${period}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Origin': 'https://finance.yahoo.com',
+          'Referer': 'https://finance.yahoo.com',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Yahoo Finance API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.chart.error) {
+      throw new Error(data.chart.error.description);
+    }
+
+    const result = data.chart.result?.[0];
+    if (!result || !result.timestamp || !result.indicators?.quote?.[0]?.close) {
+      throw new Error("No data found");
+    }
+
+    // Format the historical prices data
+    const timestamps = result.timestamp;
+    const prices = result.indicators.quote[0];
+    
+    return timestamps.map((timestamp: number, index: number) => {
+      return {
+        date: new Date(timestamp * 1000).toISOString().split('T')[0],
+        open: prices.open?.[index] || 0,
+        high: prices.high?.[index] || 0,
+        low: prices.low?.[index] || 0,
+        close: prices.close?.[index] || 0,
+        volume: prices.volume?.[index] || 0
+      };
+    }).filter((price: any) => price.close !== null && price.close !== undefined);
+  } catch (error) {
+    console.error('Error fetching from Yahoo Finance:', error);
+    return [];
+  }
+}
