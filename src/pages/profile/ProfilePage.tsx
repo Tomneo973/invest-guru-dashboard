@@ -28,6 +28,15 @@ interface UserProfile {
   avatar_url?: string;
 }
 
+// Define an interface for the profile updates
+interface ProfileUpdates {
+  id: string;
+  birthday: string;
+  country: string;
+  updated_at: string;
+  avatar_url?: string;
+}
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -131,7 +140,7 @@ export default function ProfilePage() {
     
     try {
       // Mise à jour des informations du profil
-      const updates = {
+      const updates: ProfileUpdates = {
         id: user.id,
         birthday,
         country,
