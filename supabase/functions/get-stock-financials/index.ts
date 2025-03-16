@@ -16,14 +16,21 @@ serve(async (req) => {
     const { symbol } = await req.json();
     console.log('Fetching stock financials for:', symbol);
 
-    // Récupérer les informations de base sur l'action
+    // Récupérer les informations de base sur l'action avec en-têtes améliorés
+    const requestHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Origin': 'https://finance.yahoo.com',
+      'Referer': 'https://finance.yahoo.com',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-site',
+    };
+
     const quoteResponse = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-        },
-      }
+      { headers: requestHeaders }
     );
 
     if (!quoteResponse.ok) {
@@ -43,14 +50,10 @@ serve(async (req) => {
       throw new Error("No data found");
     }
 
-    // Récupérer les données financières détaillées
+    // Récupérer les données financières détaillées avec les mêmes en-têtes
     const summaryResponse = await fetch(
       `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics,assetProfile,price,financialData,incomeStatementHistory,cashflowStatementHistory`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-        },
-      }
+      { headers: requestHeaders }
     );
 
     if (!summaryResponse.ok) {

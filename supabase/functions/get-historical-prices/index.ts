@@ -16,12 +16,19 @@ serve(async (req) => {
     const { symbol, period, interval } = await req.json();
     console.log('Fetching historical prices for:', symbol, 'period:', period, 'interval:', interval);
 
-    // Fetch historical data from Yahoo Finance
+    // Fetch historical data from Yahoo Finance with enhanced headers
     const response = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval || '1mo'}&range=${period || '5y'}`,
       {
         headers: {
-          'User-Agent': 'Mozilla/5.0',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Origin': 'https://finance.yahoo.com',
+          'Referer': 'https://finance.yahoo.com',
+          'Sec-Fetch-Dest': 'empty',
+          'Sec-Fetch-Mode': 'cors',
+          'Sec-Fetch-Site': 'same-site',
         },
       }
     );
