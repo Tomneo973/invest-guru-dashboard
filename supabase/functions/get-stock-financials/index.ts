@@ -25,7 +25,7 @@ serve(async (req) => {
     
     if (!companyOverview || !quoteData) {
       console.log('Alpha Vantage data incomplete, trying Yahoo Finance as fallback');
-      return await fetchFromYahooFinance(symbol);
+      return await fetchFromYahooFinanceEnhanced(symbol);
     }
     
     // Format financial data from Alpha Vantage
@@ -139,23 +139,32 @@ async function fetchQuote(symbol: string) {
   }
 }
 
-async function fetchFromYahooFinance(symbol: string) {
+async function fetchFromYahooFinanceEnhanced(symbol: string) {
   try {
     console.log('Fetching from Yahoo Finance as fallback for symbol:', symbol);
-    // Request headers for Yahoo Finance
-    const requestHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    
+    // Creating a more comprehensive set of headers to mimic a browser
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
       'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'Cache-Control': 'max-age=0',
       'Origin': 'https://finance.yahoo.com',
-      'Referer': 'https://finance.yahoo.com',
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache',
+      'Referer': `https://finance.yahoo.com/quote/${symbol}`,
+      'Cookie': 'B=c8k1agtgvm1n3&b=3&s=k0; GUC=AQEBCAFle3xlbkIhLQTn; A1=d=AQABBHXMcWUCENzjOQXc2U_UyBxdQAfdvqwFEgEBCAFoe2VuZckib0IA_eMBAAcIdc5xZQ&S=AQAAAmidfKPQJ44hPnWgqHy4Owk; A3=d=AQABBHXMcWUCENzjOQXc2U_UyBxdQAfdvqwFEgEBCAFoe2VuZckib0IA_eMBAAcIdc5xZQ&S=AQAAAmidfKPQJ44hPnWgqHy4Owk'
     };
 
+    // First get the quote data
     const quoteResponse = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`,
-      { headers: requestHeaders }
+      { headers }
     );
 
     if (!quoteResponse.ok) {
@@ -173,10 +182,10 @@ async function fetchFromYahooFinance(symbol: string) {
       throw new Error("No data found");
     }
 
-    // Récupérer les données financières détaillées avec les mêmes en-têtes
+    // Récupérer les données financières détaillées
     const summaryResponse = await fetch(
       `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics,assetProfile,price,financialData,incomeStatementHistory,cashflowStatementHistory`,
-      { headers: requestHeaders }
+      { headers }
     );
 
     if (!summaryResponse.ok) {

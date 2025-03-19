@@ -22,10 +22,10 @@ serve(async (req) => {
     // Try Alpha Vantage first
     let data = await fetchFromAlphaVantage(symbol);
     
-    // If Alpha Vantage fails, try Yahoo Finance as fallback
+    // If Alpha Vantage fails, try Yahoo Finance as fallback with enhanced headers
     if (!data || !data.currentPrice) {
       console.log('Alpha Vantage data incomplete, trying Yahoo Finance as fallback');
-      data = await fetchFromYahooFinance(symbol);
+      data = await fetchFromYahooFinanceEnhanced(symbol);
     }
 
     return new Response(
@@ -78,7 +78,7 @@ async function fetchFromAlphaVantage(symbol: string) {
     const quote = data['Global Quote'];
     return { 
       currentPrice: parseFloat(quote['05. price']),
-      currency: quote['8. currency'] || 'USD'
+      currency: 'USD' // Alpha Vantage doesn't provide currency in GLOBAL_QUOTE
     };
   } catch (error) {
     console.error('Error fetching from Alpha Vantage:', error);
@@ -86,22 +86,32 @@ async function fetchFromAlphaVantage(symbol: string) {
   }
 }
 
-async function fetchFromYahooFinance(symbol: string) {
+async function fetchFromYahooFinanceEnhanced(symbol: string) {
   try {
     console.log('Fetching from Yahoo Finance as fallback for symbol:', symbol);
+    
+    // Creating a more comprehensive set of headers to mimic a browser
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'Cache-Control': 'max-age=0',
+      'Origin': 'https://finance.yahoo.com',
+      'Referer': `https://finance.yahoo.com/quote/${symbol}`,
+      'Cookie': 'B=c8k1agtgvm1n3&b=3&s=k0; GUC=AQEBCAFle3xlbkIhLQTn; A1=d=AQABBHXMcWUCENzjOQXc2U_UyBxdQAfdvqwFEgEBCAFoe2VuZckib0IA_eMBAAcIdc5xZQ&S=AQAAAmidfKPQJ44hPnWgqHy4Owk; A3=d=AQABBHXMcWUCENzjOQXc2U_UyBxdQAfdvqwFEgEBCAFoe2VuZckib0IA_eMBAAcIdc5xZQ&S=AQAAAmidfKPQJ44hPnWgqHy4Owk'
+    };
+    
+    // Initial request to get cookies
     const response = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Origin': 'https://finance.yahoo.com',
-          'Referer': 'https://finance.yahoo.com',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      }
+      { headers }
     );
 
     if (!response.ok) {
