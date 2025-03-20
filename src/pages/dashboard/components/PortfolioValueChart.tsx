@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
@@ -20,12 +21,12 @@ interface PortfolioValueChartProps {
   data: PortfolioValue[];
 }
 
-const formatAxisTick = (tick: string | number) => {
+const formatAxisTick = (tick: string | number, index: number): string => {
   if (typeof tick === 'string') {
     const date = new Date(tick);
     return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   }
-  return tick;
+  return String(tick);
 };
 
 export function PortfolioValueChart({ data }: PortfolioValueChartProps) {
@@ -60,7 +61,7 @@ export function PortfolioValueChart({ data }: PortfolioValueChartProps) {
           contentStyle={{ backgroundColor: isDarkTheme ? '#333' : '#fff', color: textColor }}
           itemStyle={{ color: textColor }}
         />
-        <Legend textStyle={{ color: textColor }} />
+        <Legend wrapperStyle={{ color: textColor }} />
         <Line type="monotone" dataKey="value" stroke={isDarkTheme ? '#9c27b0' : '#673ab7'} strokeWidth={2} dot={false} />
       </LineChart>
     </ResponsiveContainer>

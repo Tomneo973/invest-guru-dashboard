@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -26,8 +27,7 @@
   }
 
   .touch-scroll {
-    overflow-auto;
-    overscroll-behavior: contain;
+    @apply overflow-auto overscroll-contain;
     -webkit-overflow-scrolling: touch;
   }
 
