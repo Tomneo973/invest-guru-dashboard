@@ -1,150 +1,192 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from "react";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
   Area,
   AreaChart,
-  ReferenceLine,
-} from 'recharts';
-import { useTheme } from 'next-themes';
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { PortfolioChartTooltip } from "./PortfolioChartTooltip";
+import { usePortfolioHistory } from "./hooks/usePortfolioHistory";
+import { TimeRangeSelector } from "./TimeRangeSelector";
+import { TimeRange, useTimeRangeFilter } from "./hooks/useTimeRangeFilter";
 
-interface PortfolioValue {
-  date: string;
-  value: number;
-}
+export function PortfolioValueChart() {
+  const [selectedRange, setSelectedRange] = React.useState<TimeRange>("1m");
+  const { historyData, isLoading, updateHistoricalData } = usePortfolioHistory();
+  const [isUpdating, setIsUpdating] = React.useState(false);
+  const startDate = useTimeRangeFilter(selectedRange);
 
-interface PortfolioValueChartProps {
-  data: PortfolioValue[];
-}
-
-const formatAxisTick = (tick: string | number): string => {
-  if (typeof tick === 'string') {
-    const date = new Date(tick);
-    return date.toLocaleDateString(undefined, { month: 'short', day: '2-digit' });
-  }
-  return String(tick);
-};
-
-// Modified to explicitly return a string
-const formatYAxisTick = (value: number): string => {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  } else if (value >= 1000) {
-    return `${(value / 1000).toFixed(0)}k`;
-  }
-  return value.toString(); // Explicitly convert to string
-};
-
-export function PortfolioValueChart({ data }: PortfolioValueChartProps) {
-  const [mounted, setMounted] = useState(false);
-  const { theme } = useTheme();
-
+  // Forcer la mise à jour si aucune donnée n'est disponible
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!isLoading && (!historyData || historyData.length === 0)) {
+      handleUpdateHistoricalData();
+    }
+  }, [isLoading, historyData]);
 
-  if (!mounted) {
-    return null;
+  const filteredData = React.useMemo(() => {
+    if (!historyData) return [];
+    return historyData.filter(
+      (data) => new Date(data.date) >= startDate
+    );
+  }, [historyData, startDate]);
+
+  const handleUpdateHistoricalData = async () => {
+    setIsUpdating(true);
+    try {
+      await updateHistoricalData();
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Évolution du Portfolio</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            Chargement des données...
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
-  const isDarkTheme = theme === 'dark';
-
-  // Modern color palette
-  const textColor = isDarkTheme ? '#fff' : '#444';
-  const gridColor = isDarkTheme ? '#333' : '#eaeaea';
-  const areaColor = isDarkTheme ? 'rgba(138, 93, 245, 0.2)' : 'rgba(138, 93, 245, 0.1)';
-  const lineColor = isDarkTheme ? '#9c27b0' : '#8a5df5';
-  const backgroundFill = isDarkTheme ? '#1f1f23' : '#ffffff';
-  const tooltipBackground = isDarkTheme ? '#333' : '#fff';
-  const tooltipBorder = isDarkTheme ? '#444' : '#e8e8e8';
-
-  // Calculate min and max values for the Y axis
-  const values = data.map(item => item.value);
-  const minValue = Math.min(...values) * 0.95;
-  const maxValue = Math.max(...values) * 1.05;
+  if (!filteredData?.length) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle>Évolution du Portfolio</CardTitle>
+          <div className="flex items-center gap-4">
+            <TimeRangeSelector
+              selectedRange={selectedRange}
+              onRangeChange={setSelectedRange}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUpdateHistoricalData}
+              disabled={isUpdating}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
+              Mettre à jour
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            {isUpdating ? "Mise à jour des données..." : "Aucune donnée disponible"}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="bg-white dark:bg-background rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-      <h3 className="text-lg font-medium mb-4 text-left pl-4">Évolution du portefeuille</h3>
-      <ResponsiveContainer width="100%" height={400}>
-        <AreaChart 
-          data={data} 
-          margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
-        >
-          <defs>
-            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={lineColor} stopOpacity={0.8}/>
-              <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <CartesianGrid 
-            stroke={gridColor} 
-            strokeDasharray="3 3" 
-            vertical={false} 
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle>Évolution du Portfolio</CardTitle>
+        <div className="flex items-center gap-4">
+          <TimeRangeSelector
+            selectedRange={selectedRange}
+            onRangeChange={setSelectedRange}
           />
-          <XAxis 
-            dataKey="date" 
-            tickFormatter={formatAxisTick}
-            style={{ fontSize: '12px', fill: textColor }}
-            tick={{ fill: textColor }}
-            axisLine={{ stroke: gridColor }}
-            tickLine={{ stroke: gridColor }}
-            tickMargin={10}
-            padding={{ left: 0, right: 0 }}
-          />
-          <YAxis 
-            style={{ fontSize: '12px', fill: textColor }} 
-            tick={{ fill: textColor }}
-            tickFormatter={formatYAxisTick}
-            axisLine={{ stroke: gridColor }}
-            tickLine={{ stroke: gridColor }}
-            tickMargin={10}
-            domain={[minValue, maxValue]}
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: tooltipBackground, 
-              border: `1px solid ${tooltipBorder}`,
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-              fontSize: '12px',
-              color: textColor,
-              padding: '10px'
-            }}
-            labelStyle={{ color: textColor, fontWeight: 'bold', marginBottom: '5px' }}
-            formatter={(value: number) => [`${value.toLocaleString()} CHF`, 'Valeur']}
-            labelFormatter={(label) => {
-              const date = new Date(label);
-              return date.toLocaleDateString(undefined, { 
-                day: 'numeric', 
-                month: 'long', 
-                year: 'numeric' 
-              });
-            }}
-          />
-          <Area 
-            type="monotone" 
-            dataKey="value" 
-            stroke={lineColor} 
-            strokeWidth={2}
-            fillOpacity={1}
-            fill="url(#colorValue)"
-            animationDuration={1500}
-            animationEasing="ease-in-out"
-          />
-          <Legend 
-            wrapperStyle={{ paddingTop: '20px', color: textColor }}
-            formatter={(value: string) => ['Valeur du portefeuille', '']}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUpdateHistoricalData}
+            disabled={isUpdating}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
+            Mettre à jour
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={filteredData}>
+              <defs>
+                <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorDividends" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.1} />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(value) =>
+                  format(parseISO(value), "dd MMM", { locale: fr })
+                }
+                stroke="#6B7280"
+                tick={{ fill: '#6B7280' }}
+                axisLine={{ stroke: '#374151', opacity: 0.2 }}
+              />
+              <YAxis
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`}
+                stroke="#6B7280"
+                tick={{ fill: '#6B7280' }}
+                axisLine={{ stroke: '#374151', opacity: 0.2 }}
+              />
+              <Tooltip content={<PortfolioChartTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="investedValue"
+                stroke="#22c55e"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorInvested)"
+                name="Montant investi"
+                isAnimationActive={false}
+              />
+              <Area
+                type="monotone"
+                dataKey="portfolioValue"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorPortfolio)"
+                name="Valeur du portfolio"
+                isAnimationActive={false}
+              />
+              <Area
+                type="monotone"
+                dataKey="cumulativeDividends"
+                stroke="#eab308"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorDividends)"
+                name="Dividendes cumulés"
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

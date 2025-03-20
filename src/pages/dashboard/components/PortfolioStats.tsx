@@ -7,7 +7,6 @@ import { PositionsCard } from "./PositionsCard";
 import { TopReturnsCard } from "./TopReturnsCard";
 import { FlopReturnsCard } from "./FlopReturnsCard";
 import { PortfolioStatsProps } from "./types/portfolioStats";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export function PortfolioStats({
   totalInvested,
@@ -28,7 +27,6 @@ export function PortfolioStats({
   const [convertedInvested, setConvertedInvested] = useState(totalInvested);
   const [convertedValue, setConvertedValue] = useState(totalCurrentValue);
   const [convertedReturn, setConvertedReturn] = useState(totalReturn);
-  const isMobile = useIsMobile();
 
   const handleCurrencyChange = (
     currency: string, 
@@ -44,7 +42,7 @@ export function PortfolioStats({
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <InvestedCard 
           totalInvested={convertedInvested} 
           currency={selectedCurrency} 
@@ -63,7 +61,7 @@ export function PortfolioStats({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PositionsCard numberOfPositions={numberOfPositions} />
         <TopReturnsCard returns={top5Returns} />
         <FlopReturnsCard returns={flop5Returns} />
