@@ -1,101 +1,57 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.75rem;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
-  
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
 }
 
-.glass-card {
-  @apply bg-card backdrop-blur-sm border border-white/10 shadow-lg;
+@layer components {
+  .responsive-table-container {
+    @apply overflow-x-auto;
+  }
 }
 
-.fade-in {
-  @apply animate-fadeIn;
-}
-
-.slide-in {
-  @apply animate-slideIn;
-}
-
-.hover-scale {
-  @apply transition-transform duration-200 hover:scale-105;
-}
-
-.text-balance {
-  text-wrap: balance;
-}
-
-/* Mobile responsive utilities */
 @layer utilities {
-  .mobile-container {
-    @apply px-4 py-3 sm:px-6 sm:py-4;
+  .h-screen-ios {
+    height: 100svh;
   }
-  
-  .mobile-grid {
-    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3;
-  }
-  
-  .mobile-full {
-    @apply w-full;
-  }
-  
+
   .touch-scroll {
-    @apply overflow-auto overscroll-contain;
+    overflow-auto;
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
-  
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 1rem);
-  }
-  
-  .safe-top {
-    padding-top: env(safe-area-inset-top, 1rem);
-  }
-}
 
-/* Responsive tables for mobile */
-@media (max-width: 640px) {
-  .responsive-table-container {
-    @apply overflow-x-auto max-w-full;
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
-  
-  .card-grid-mobile {
-    @apply grid grid-cols-1 gap-4;
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .fade-in {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
   }
 }

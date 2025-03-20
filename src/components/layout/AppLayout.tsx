@@ -23,18 +23,23 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen flex flex-col w-full">
-      {/* Desktop sidebar - left side */}
+      {/* Desktop layout - sidebar on left */}
       {!isMobile && (
         <div className="flex flex-1 min-h-screen">
           <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
           <div className="flex-1 flex flex-col">
             <header className="h-16 px-4 sm:px-6 flex items-center justify-between border-b bg-white/80 backdrop-blur-sm">
-              <div className={isMobile ? "ml-4" : "hidden"}>
-                <h1 className="font-semibold">Portfolio</h1>
-              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="mr-2"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
               <UserMenu />
             </header>
-            <main className="flex-1 p-3 sm:p-6 overflow-auto touch-scroll">
+            <main className="flex-1 p-3 sm:p-6 overflow-auto">
               <div className="max-w-7xl mx-auto fade-in">
                 {children}
               </div>
