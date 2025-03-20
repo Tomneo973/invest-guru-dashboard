@@ -76,7 +76,8 @@
   }
   
   .touch-scroll {
-    @apply overflow-auto overscroll-contain -webkit-overflow-scrolling-touch;
+    @apply overflow-auto overscroll-contain;
+    -webkit-overflow-scrolling: touch;
   }
   
   .safe-bottom {
