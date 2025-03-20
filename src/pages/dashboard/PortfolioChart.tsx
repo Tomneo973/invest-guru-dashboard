@@ -5,8 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PortfolioStats } from "./components/PortfolioStats";
 import { PortfolioValueChart } from "./components/PortfolioValueChart";
 import { getStockPrice } from "@/services/yahooFinance";
+import { usePortfolioHistory } from "./components/hooks/usePortfolioHistory";
 
 export function PortfolioChart() {
+  const { historyData, isLoading: isLoadingHistory } = usePortfolioHistory();
+  
   const { data: holdings, isLoading } = useQuery({
     queryKey: ["portfolio-holdings"],
     queryFn: async () => {
@@ -28,7 +31,7 @@ export function PortfolioChart() {
     },
   });
 
-  if (isLoading) {
+  if (isLoading || isLoadingHistory) {
     return <Skeleton className="w-full h-[400px] rounded-lg" />;
   }
 
@@ -68,6 +71,12 @@ export function PortfolioChart() {
     return acc;
   }, [] as Array<{ currency: string; amount: number }>) || [];
 
+  // Format history data for the chart
+  const chartData = historyData?.map(item => ({
+    date: item.date,
+    value: item.portfolioValue
+  })) || [];
+
   return (
     <div className="w-full space-y-8">
       <PortfolioStats
@@ -80,7 +89,7 @@ export function PortfolioChart() {
         flop5Returns={flop5Returns}
         currencyAmounts={currencyAmounts}
       />
-      <PortfolioValueChart />
+      <PortfolioValueChart data={chartData} />
     </div>
   );
 }
