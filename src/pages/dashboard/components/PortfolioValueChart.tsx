@@ -32,13 +32,14 @@ const formatAxisTick = (tick: string | number): string => {
   return String(tick);
 };
 
-const formatYAxisTick = (value: number) => {
+// Modified to explicitly return a string
+const formatYAxisTick = (value: number): string => {
   if (value >= 1000000) {
     return `${(value / 1000000).toFixed(1)}M`;
   } else if (value >= 1000) {
     return `${(value / 1000).toFixed(0)}k`;
   }
-  return value;
+  return value.toString(); // Explicitly convert to string
 };
 
 export function PortfolioValueChart({ data }: PortfolioValueChartProps) {
@@ -55,7 +56,7 @@ export function PortfolioValueChart({ data }: PortfolioValueChartProps) {
 
   const isDarkTheme = theme === 'dark';
 
-  // Définir des couleurs modernes
+  // Modern color palette
   const textColor = isDarkTheme ? '#fff' : '#444';
   const gridColor = isDarkTheme ? '#333' : '#eaeaea';
   const areaColor = isDarkTheme ? 'rgba(138, 93, 245, 0.2)' : 'rgba(138, 93, 245, 0.1)';
@@ -64,7 +65,7 @@ export function PortfolioValueChart({ data }: PortfolioValueChartProps) {
   const tooltipBackground = isDarkTheme ? '#333' : '#fff';
   const tooltipBorder = isDarkTheme ? '#444' : '#e8e8e8';
 
-  // Calculer les valeurs min et max pour définir le domaine de l'axe Y
+  // Calculate min and max values for the Y axis
   const values = data.map(item => item.value);
   const minValue = Math.min(...values) * 0.95;
   const maxValue = Math.max(...values) * 1.05;
@@ -140,7 +141,7 @@ export function PortfolioValueChart({ data }: PortfolioValueChartProps) {
           />
           <Legend 
             wrapperStyle={{ paddingTop: '20px', color: textColor }}
-            formatter={() => ['Valeur du portefeuille', '']}
+            formatter={(value: string) => ['Valeur du portefeuille', '']}
           />
         </AreaChart>
       </ResponsiveContainer>
