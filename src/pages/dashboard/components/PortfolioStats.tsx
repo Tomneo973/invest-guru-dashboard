@@ -44,7 +44,7 @@ export function PortfolioStats({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <InvestedCard 
           totalInvested={convertedInvested} 
           currency={selectedCurrency} 
@@ -63,7 +63,7 @@ export function PortfolioStats({
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <PositionsCard numberOfPositions={numberOfPositions} />
         <TopReturnsCard returns={top5Returns} />
         <FlopReturnsCard returns={flop5Returns} />

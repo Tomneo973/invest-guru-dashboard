@@ -23,12 +23,14 @@ import { PortfolioChartTooltip } from "./PortfolioChartTooltip";
 import { usePortfolioHistory } from "./hooks/usePortfolioHistory";
 import { TimeRangeSelector } from "./TimeRangeSelector";
 import { TimeRange, useTimeRangeFilter } from "./hooks/useTimeRangeFilter";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function PortfolioValueChart() {
   const [selectedRange, setSelectedRange] = React.useState<TimeRange>("1m");
   const { historyData, isLoading, updateHistoricalData } = usePortfolioHistory();
   const [isUpdating, setIsUpdating] = React.useState(false);
   const startDate = useTimeRangeFilter(selectedRange);
+  const isMobile = useIsMobile();
 
   // Forcer la mise à jour si aucune donnée n'est disponible
   useEffect(() => {
@@ -100,9 +102,9 @@ export function PortfolioValueChart() {
 
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <CardHeader className={`flex ${isMobile ? 'flex-col space-y-3' : 'flex-row items-center justify-between space-y-0'} pb-4`}>
         <CardTitle>Évolution du Portfolio</CardTitle>
-        <div className="flex items-center gap-4">
+        <div className={`flex ${isMobile ? 'flex-col space-y-2 w-full' : 'items-center gap-4'}`}>
           <TimeRangeSelector
             selectedRange={selectedRange}
             onRangeChange={setSelectedRange}
@@ -112,6 +114,7 @@ export function PortfolioValueChart() {
             size="sm"
             onClick={handleUpdateHistoricalData}
             disabled={isUpdating}
+            className={isMobile ? "w-full" : ""}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
             Mettre à jour
@@ -119,9 +122,12 @@ export function PortfolioValueChart() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
+        <div className={`${isMobile ? 'h-[200px]' : 'h-[300px]'}`}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={filteredData}>
+            <AreaChart 
+              data={filteredData}
+              margin={isMobile ? { top: 5, right: 5, bottom: 5, left: 5 } : { top: 10, right: 30, bottom: 10, left: 20 }}
+            >
               <defs>
                 <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
@@ -140,17 +146,20 @@ export function PortfolioValueChart() {
               <XAxis
                 dataKey="date"
                 tickFormatter={(value) =>
-                  format(parseISO(value), "dd MMM", { locale: fr })
+                  format(parseISO(value), isMobile ? "dd/MM" : "dd MMM", { locale: fr })
                 }
                 stroke="#6B7280"
-                tick={{ fill: '#6B7280' }}
+                tick={{ fill: '#6B7280', fontSize: isMobile ? 10 : 12 }}
                 axisLine={{ stroke: '#374151', opacity: 0.2 }}
+                tickMargin={isMobile ? 5 : 10}
+                interval={isMobile ? "preserveStartEnd" : "auto"}
               />
               <YAxis
                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`}
                 stroke="#6B7280"
-                tick={{ fill: '#6B7280' }}
+                tick={{ fill: '#6B7280', fontSize: isMobile ? 10 : 12 }}
                 axisLine={{ stroke: '#374151', opacity: 0.2 }}
+                width={isMobile ? 40 : 60}
               />
               <Tooltip content={<PortfolioChartTooltip />} />
               <Area
