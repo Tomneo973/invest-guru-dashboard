@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -58,4 +59,42 @@
 
 .text-balance {
   text-wrap: balance;
+}
+
+/* Mobile responsive utilities */
+@layer utilities {
+  .mobile-container {
+    @apply px-4 py-3 sm:px-6 sm:py-4;
+  }
+  
+  .mobile-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3;
+  }
+  
+  .mobile-full {
+    @apply w-full;
+  }
+  
+  .touch-scroll {
+    @apply overflow-auto overscroll-contain -webkit-overflow-scrolling-touch;
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 1rem);
+  }
+}
+
+/* Responsive tables for mobile */
+@media (max-width: 640px) {
+  .responsive-table-container {
+    @apply overflow-x-auto max-w-full;
+  }
+  
+  .card-grid-mobile {
+    @apply grid grid-cols-1 gap-4;
+  }
 }

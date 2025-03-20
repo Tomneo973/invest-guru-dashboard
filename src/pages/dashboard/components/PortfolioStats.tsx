@@ -7,6 +7,7 @@ import { PositionsCard } from "./PositionsCard";
 import { TopReturnsCard } from "./TopReturnsCard";
 import { FlopReturnsCard } from "./FlopReturnsCard";
 import { PortfolioStatsProps } from "./types/portfolioStats";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function PortfolioStats({
   totalInvested,
@@ -27,6 +28,7 @@ export function PortfolioStats({
   const [convertedInvested, setConvertedInvested] = useState(totalInvested);
   const [convertedValue, setConvertedValue] = useState(totalCurrentValue);
   const [convertedReturn, setConvertedReturn] = useState(totalReturn);
+  const isMobile = useIsMobile();
 
   const handleCurrencyChange = (
     currency: string, 
