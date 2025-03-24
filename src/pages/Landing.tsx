@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChartLine, DollarSign, LineChart, BarChart3 } from "lucide-react";
+import { MarketNewsSection } from "@/components/MarketNewsSection";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -100,23 +101,7 @@ const Landing = () => {
               Dernières Actualités Boursières
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="h-40 bg-gray-100 rounded-lg mb-4"></div>
-                <div className="text-sm text-gray-500 mb-2">il y a 2 heures</div>
-                <h3 className="text-lg font-semibold mb-2">
-                  Les marchés européens en hausse suite aux annonces de la BCE
-                </h3>
-                <p className="text-gray-600 line-clamp-2">
-                  Les principaux indices européens progressent ce matin, portés par les dernières décisions de politique monétaire...
-                </p>
-              </div>
-            ))}
-          </div>
+          <MarketNewsSection />
         </div>
       </div>
 
