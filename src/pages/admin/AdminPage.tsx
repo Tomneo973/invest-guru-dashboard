@@ -20,9 +20,10 @@ interface UserProfile {
   created_at: string;
 }
 
+// Define a more flexible interface that matches what Supabase returns
 interface SupabaseUser {
   id: string;
-  email: string;
+  email?: string; // Make email optional to match actual User type
 }
 
 export default function AdminPage() {
@@ -68,9 +69,13 @@ export default function AdminPage() {
         
         // Vérifier que authData.users existe et est un tableau
         const authUsers = authData?.users || [];
-        authUsers.forEach((user: SupabaseUser) => {
-          if (user && typeof user.id === 'string' && typeof user.email === 'string') {
-            emailMap.set(user.id, user.email);
+        
+        // Use type assertion to resolve the type compatibility issue
+        authUsers.forEach((user: any) => {
+          if (user && typeof user.id === 'string') {
+            // Use the email or a default value if it's not available
+            const email = typeof user.email === 'string' ? user.email : "Email non disponible";
+            emailMap.set(user.id, email);
           }
         });
 
