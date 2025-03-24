@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -37,6 +38,12 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, textarea, button, select {
+    font-family: inherit;
+    font-size: inherit;
   }
 }
 
@@ -58,4 +65,27 @@
 
 .text-balance {
   text-wrap: balance;
+}
+
+/* Optimisations pour mobile */
+@media (max-width: 640px) {
+  .table-responsive {
+    @apply overflow-x-auto -mx-4 px-4;
+  }
+  
+  .card-compact {
+    @apply p-3;
+  }
+  
+  /* Réduit les paddings sur les petits écrans */
+  .sm-p-2 {
+    @apply p-2;
+  }
+}
+
+/* Rend les éléments focusables plus faciles à cliquer sur mobile */
+@media (max-width: 640px) {
+  button, a, [role="button"] {
+    @apply min-h-10 min-w-10;
+  }
 }

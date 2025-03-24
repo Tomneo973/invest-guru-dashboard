@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoricalPrice } from "@/services/stockAnalysis";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StockPriceChartProps {
   data: HistoricalPrice[];
@@ -42,6 +43,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 };
 
 export function StockPriceChart({ data, symbol, currency }: StockPriceChartProps) {
+  const isMobile = useIsMobile();
   const chartData = useMemo(() => {
     return data.map(item => ({
       date: item.date,
@@ -56,7 +58,7 @@ export function StockPriceChart({ data, symbol, currency }: StockPriceChartProps
           <CardTitle>Historique des prix - {symbol}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[400px] flex items-center justify-center">
+          <div className="h-[300px] md:h-[400px] flex items-center justify-center">
             Aucune donnée disponible
           </div>
         </CardContent>
@@ -64,15 +66,20 @@ export function StockPriceChart({ data, symbol, currency }: StockPriceChartProps
     );
   }
 
+  // Si on est sur mobile, on prend moins de points de données pour éviter la surcharge
+  const displayData = isMobile && chartData.length > 30 
+    ? chartData.filter((_, index) => index % 3 === 0) 
+    : chartData;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Historique des prix - {symbol}</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Historique des prix - {symbol}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px]">
+        <div className="h-[300px] md:h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={displayData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <defs>
                 <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -83,18 +90,20 @@ export function StockPriceChart({ data, symbol, currency }: StockPriceChartProps
               <XAxis
                 dataKey="date"
                 tickFormatter={(value) =>
-                  format(parseISO(value), "MMM yyyy", { locale: fr })
+                  format(parseISO(value), isMobile ? "MMM" : "MMM yyyy", { locale: fr })
                 }
                 stroke="#6B7280"
                 tick={{ fill: '#6B7280' }}
                 axisLine={{ stroke: '#374151', opacity: 0.2 }}
+                tickCount={isMobile ? 4 : undefined}
               />
               <YAxis
-                tickFormatter={(value) => `${value.toFixed(0)} ${currency}`}
+                tickFormatter={(value) => `${value.toFixed(0)}`}
                 stroke="#6B7280"
                 tick={{ fill: '#6B7280' }}
                 axisLine={{ stroke: '#374151', opacity: 0.2 }}
                 domain={['auto', 'auto']}
+                tickCount={5}
               />
               <Tooltip content={<CustomTooltip />} />
               <Area
