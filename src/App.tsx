@@ -13,80 +13,105 @@ import StatisticsPage from "./pages/statistics/StatisticsPage";
 import DividendsPage from "./pages/dividends/DividendsPage";
 import StockAnalysisPage from "./pages/stock-analysis/StockAnalysisPage";
 import ProfilePage from "./pages/profile/ProfilePage";
+import SubscriptionPage from "./pages/subscription/SubscriptionPage";
+import AdminPage from "./pages/admin/AdminPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = true;
-  return isAuthenticated ? children : <Navigate to="/auth" />;
-};
-
-const LayoutRoute = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute>
+const LayoutRoute = ({ 
+  children,
+  requireAuth = true,
+  requirePremium = false
+}: { 
+  children: React.ReactNode;
+  requireAuth?: boolean;
+  requirePremium?: boolean;
+}) => (
+  <ProtectedRoute requireAuth={requireAuth} requirePremium={requirePremium}>
     <AppLayout>{children}</AppLayout>
   </ProtectedRoute>
 );
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Index />} />
-          <Route
-            path="/dashboard"
-            element={
-              <LayoutRoute>
-                <DashboardPage />
-              </LayoutRoute>
-            }
-          />
-          <Route
-            path="/transactions"
-            element={
-              <LayoutRoute>
-                <TransactionsPage />
-              </LayoutRoute>
-            }
-          />
-          <Route
-            path="/statistics"
-            element={
-              <LayoutRoute>
-                <StatisticsPage />
-              </LayoutRoute>
-            }
-          />
-          <Route
-            path="/dividends"
-            element={
-              <LayoutRoute>
-                <DividendsPage />
-              </LayoutRoute>
-            }
-          />
-          <Route
-            path="/stock-analysis"
-            element={
-              <LayoutRoute>
-                <StockAnalysisPage />
-              </LayoutRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <LayoutRoute>
-                <ProfilePage />
-              </LayoutRoute>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/auth" element={<Index />} />
+            <Route
+              path="/dashboard"
+              element={
+                <LayoutRoute>
+                  <DashboardPage />
+                </LayoutRoute>
+              }
+            />
+            <Route
+              path="/transactions"
+              element={
+                <LayoutRoute>
+                  <TransactionsPage />
+                </LayoutRoute>
+              }
+            />
+            <Route
+              path="/statistics"
+              element={
+                <LayoutRoute requirePremium>
+                  <StatisticsPage />
+                </LayoutRoute>
+              }
+            />
+            <Route
+              path="/dividends"
+              element={
+                <LayoutRoute>
+                  <DividendsPage />
+                </LayoutRoute>
+              }
+            />
+            <Route
+              path="/stock-analysis"
+              element={
+                <LayoutRoute requirePremium>
+                  <StockAnalysisPage />
+                </LayoutRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <LayoutRoute>
+                  <ProfilePage />
+                </LayoutRoute>
+              }
+            />
+            <Route
+              path="/subscription"
+              element={
+                <LayoutRoute requirePremium={false}>
+                  <SubscriptionPage />
+                </LayoutRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <LayoutRoute>
+                  <AdminPage />
+                </LayoutRoute>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

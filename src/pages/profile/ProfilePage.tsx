@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -6,13 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Calendar, FileText, UserRound, Mail, Lock, Upload, Globe, CakeIcon } from "lucide-react";
+import { Loader2, Calendar, FileText, UserRound, Mail, Lock, Upload, Globe, CakeIcon, Star, CheckCircle } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 interface ProfileStats {
   transactionCount: number;
@@ -26,9 +26,10 @@ interface UserProfile {
   birthday?: string;
   country?: string;
   avatar_url?: string;
+  role?: string;
+  premium_until?: string;
 }
 
-// Define an interface for the profile updates
 interface ProfileUpdates {
   id: string;
   birthday: string;
@@ -40,6 +41,7 @@ interface ProfileUpdates {
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user: authUser, isPremium } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -53,7 +55,6 @@ export default function ProfilePage() {
     profileCreatedAt: null,
   });
   
-  // Nouveaux états pour les formulaires
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -71,10 +72,9 @@ export default function ProfilePage() {
         setUser(user);
         setNewEmail(user.email || "");
 
-        // Récupérer les informations du profil
         const { data: profileData, error } = await supabase
           .from("profiles")
-          .select("created_at, birthday, country, avatar_url")
+          .select("created_at, birthday, country, avatar_url, role, premium_until")
           .eq("id", user.id)
           .single();
 
@@ -97,13 +97,11 @@ export default function ProfilePage() {
           }));
         }
 
-        // Récupérer les statistiques
         const { count: transactionCount } = await supabase
           .from("transactions")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id);
 
-        // Récupérer le nombre de dividendes
         const { count: dividendCount } = await supabase
           .from("dividends")
           .select("id", { count: "exact", head: true })
@@ -128,7 +126,6 @@ export default function ProfilePage() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setAvatarFile(e.target.files[0]);
-      // Prévisualisation de l'image
       setAvatarUrl(URL.createObjectURL(e.target.files[0]));
     }
   };
@@ -139,15 +136,13 @@ export default function ProfilePage() {
     setIsUpdating(true);
     
     try {
-      // Mise à jour des informations du profil
       const updates: ProfileUpdates = {
         id: user.id,
         birthday,
         country,
-        updated_at: new Date().toISOString(), // Convertir en string ISO
+        updated_at: new Date().toISOString(),
       };
       
-      // Upload de l'avatar si un fichier est sélectionné
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const filePath = `${user.id}/avatar.${fileExt}`;
@@ -160,7 +155,6 @@ export default function ProfilePage() {
           throw uploadError;
         }
         
-        // Récupérer l'URL publique
         const { data: { publicUrl } } = supabase.storage
           .from('avatars')
           .getPublicUrl(filePath);
@@ -168,7 +162,6 @@ export default function ProfilePage() {
         updates.avatar_url = publicUrl;
       }
       
-      // Mise à jour du profil
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert(updates);
@@ -182,7 +175,6 @@ export default function ProfilePage() {
         description: "Vos informations ont été mises à jour avec succès",
       });
       
-      // Mettre à jour l'objet profile
       setProfile(prev => ({
         ...prev!,
         birthday,
@@ -248,7 +240,6 @@ export default function ProfilePage() {
         description: "Votre mot de passe a été modifié avec succès",
       });
       
-      // Réinitialiser les champs
       setNewPassword("");
       setConfirmPassword("");
       
@@ -286,6 +277,17 @@ export default function ProfilePage() {
             </Avatar>
             <CardTitle>{user?.email}</CardTitle>
             
+            <div className="mt-2">
+              {isPremium ? (
+                <Badge className="bg-amber-500">
+                  <Star className="w-3 h-3 mr-1" />
+                  Premium
+                </Badge>
+              ) : (
+                <Badge variant="outline">Compte Standard</Badge>
+              )}
+            </div>
+            
             <div className="w-full mt-4">
               <Label htmlFor="avatar" className="block text-sm mb-2">Changer la photo de profil</Label>
               <div className="flex items-center space-x-2">
@@ -299,10 +301,19 @@ export default function ProfilePage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-col items-center">
+          <CardContent className="flex flex-col items-center gap-2">
+            {!isPremium && (
+              <Button 
+                className="w-full mt-2"
+                onClick={() => navigate('/subscription')}
+              >
+                <Star className="w-4 h-4 mr-2" />
+                Passer Premium
+              </Button>
+            )}
             <Button 
               variant="outline" 
-              className="mt-2 w-full"
+              className="w-full"
               onClick={() => navigate('/dashboard')}
             >
               Retour au Dashboard
