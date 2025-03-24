@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, UserCheck, UserX, Crown } from "lucide-react";
+import { Loader2, UserX, Crown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -18,6 +18,11 @@ interface UserProfile {
   role: "user" | "premium" | "admin";
   premium_until: string | null;
   created_at: string;
+}
+
+interface SupabaseUser {
+  id: string;
+  email: string;
 }
 
 export default function AdminPage() {
@@ -45,24 +50,32 @@ export default function AdminPage() {
     const fetchUsers = async () => {
       try {
         // Récupérer tous les profils utilisateurs (seuls les admins peuvent faire cette requête grâce aux RLS)
-        const { data, error } = await supabase
+        const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("*");
 
-        if (error) throw error;
+        if (profilesError) throw profilesError;
 
         // Récupérer les emails depuis la table des utilisateurs
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        // Note: Dans un environnement réel, cette opération nécessiterait un accès service_role
+        // Nous simulons ici le comportement pour démonstration
+        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
         
-        // Note: Cette ligne est pour simuler la requête, car en réalité on aurait besoin
-        // d'une fonction edge pour accéder à auth.users via le compte service_role
-        const emailMap = new Map();
-        authUsers?.users.forEach(user => {
-          emailMap.set(user.id, user.email);
+        if (authError) throw authError;
+        
+        // Créer un mapping des emails
+        const emailMap = new Map<string, string>();
+        
+        // Vérifier que authData.users existe et est un tableau
+        const authUsers = authData?.users || [];
+        authUsers.forEach((user: SupabaseUser) => {
+          if (user && typeof user.id === 'string' && typeof user.email === 'string') {
+            emailMap.set(user.id, user.email);
+          }
         });
 
         // Combiner les données
-        const combinedUsers = data.map(profile => ({
+        const combinedUsers = profilesData.map(profile => ({
           ...profile,
           email: emailMap.get(profile.id) || "Email non disponible",
         }));
