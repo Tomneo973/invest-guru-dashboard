@@ -7,7 +7,6 @@ import { SectorDistributionChart } from "./components/SectorDistributionChart";
 import { StockTreemapChart } from "./components/StockTreemapChart";
 import { DividendYearlyChart } from "./components/DividendYearlyChart";
 import { DividendMonthlyChart } from "./components/DividendMonthlyChart";
-import { PremiumBadge } from "@/components/PremiumBadge";
 
 type PortfolioHolding = {
   symbol: string;
@@ -36,7 +35,6 @@ export default function StatisticsPage() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Statistiques</h1>
-        <PremiumBadge />
       </div>
       <div className="flex flex-col gap-8">
         <Card>

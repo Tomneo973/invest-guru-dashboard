@@ -196,8 +196,6 @@ export type Database = {
           country: string | null
           created_at: string
           id: string
-          premium_until: string | null
-          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
@@ -206,8 +204,6 @@ export type Database = {
           country?: string | null
           created_at?: string
           id: string
-          premium_until?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
@@ -216,8 +212,6 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
-          premium_until?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Relationships: []
@@ -243,45 +237,6 @@ export type Database = {
           currency?: string
           date?: string
           symbol?: string
-        }
-        Relationships: []
-      }
-      subscriptions: {
-        Row: {
-          amount: number
-          created_at: string
-          currency: string
-          end_date: string
-          id: string
-          payment_id: string | null
-          payment_status: string
-          plan_type: string
-          start_date: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          currency: string
-          end_date: string
-          id?: string
-          payment_id?: string | null
-          payment_status?: string
-          plan_type: string
-          start_date?: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          currency?: string
-          end_date?: string
-          id?: string
-          payment_id?: string | null
-          payment_status?: string
-          plan_type?: string
-          start_date?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -351,21 +306,9 @@ export type Database = {
           currency: string
         }[]
       }
-      is_admin: {
-        Args: {
-          user_id: string
-        }
-        Returns: boolean
-      }
       is_market_holiday: {
         Args: {
           check_date: string
-        }
-        Returns: boolean
-      }
-      is_premium_user: {
-        Args: {
-          user_id: string
         }
         Returns: boolean
       }
@@ -391,7 +334,7 @@ export type Database = {
       }
     }
     Enums: {
-      user_role: "user" | "premium" | "admin"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
