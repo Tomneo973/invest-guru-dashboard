@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Shield, Edit, Search } from "lucide-react";
+import { Shield, Edit, Search, RefreshCw, UserCheck, Eye } from "lucide-react";
 
 interface User {
   id: string;
@@ -37,11 +37,26 @@ interface User {
   };
 }
 
+interface UserTransactions {
+  id: string;
+  user_id: string;
+  type: string;
+  symbol: string;
+  shares: number;
+  price: number;
+  date: string;
+  platform: string;
+  currency: string;
+  sector: string;
+}
+
 const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userTransactions, setUserTransactions] = useState<UserTransactions[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -121,6 +136,33 @@ const UserManagement = () => {
     }
   };
 
+  const fetchUserTransactions = async (userId: string) => {
+    try {
+      setLoadingTransactions(true);
+      
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", userId);
+
+      if (error) {
+        throw error;
+      }
+
+      setUserTransactions(data || []);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des transactions:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de récupérer les transactions de l'utilisateur.",
+        variant: "destructive",
+      });
+      setUserTransactions([]);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
   const toggleAdminRole = async (userId: string, currentRole: string) => {
     try {
       const newRole = currentRole === "admin" ? "user" : "admin";
@@ -177,13 +219,14 @@ const UserManagement = () => {
         <div className="relative flex-1">
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Rechercher un utilisateur..."
+            placeholder="Rechercher par ID, email, pays..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
           />
         </div>
-        <Button onClick={fetchUsers} variant="outline">
+        <Button onClick={fetchUsers} variant="outline" className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4" />
           Actualiser
         </Button>
       </div>
@@ -235,12 +278,15 @@ const UserManagement = () => {
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              onClick={() => setSelectedUser(user)}
+                              onClick={() => {
+                                setSelectedUser(user);
+                                fetchUserTransactions(user.id);
+                              }}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="max-w-4xl">
                             <DialogHeader>
                               <DialogTitle>Détails de l'utilisateur</DialogTitle>
                               <DialogDescription>
@@ -248,7 +294,7 @@ const UserManagement = () => {
                               </DialogDescription>
                             </DialogHeader>
                             {selectedUser && (
-                              <div className="space-y-4 py-4">
+                              <div className="space-y-6 py-4">
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <p className="text-sm font-medium">ID</p>
@@ -284,6 +330,60 @@ const UserManagement = () => {
                                       {selectedUser.profile?.role || "user"}
                                     </p>
                                   </div>
+                                </div>
+
+                                <div className="mt-6">
+                                  <h3 className="text-lg font-medium mb-2">Transactions</h3>
+                                  {loadingTransactions ? (
+                                    <div className="flex justify-center my-4">
+                                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gray-900"></div>
+                                    </div>
+                                  ) : userTransactions.length === 0 ? (
+                                    <p className="text-sm text-gray-500">Aucune transaction trouvée.</p>
+                                  ) : (
+                                    <div className="overflow-x-auto">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Symbole</TableHead>
+                                            <TableHead>Quantité</TableHead>
+                                            <TableHead>Prix</TableHead>
+                                            <TableHead>Total</TableHead>
+                                            <TableHead>Plateforme</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {userTransactions.map((transaction) => (
+                                            <TableRow key={transaction.id}>
+                                              <TableCell>
+                                                {new Date(transaction.date).toLocaleDateString("fr-FR")}
+                                              </TableCell>
+                                              <TableCell>
+                                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                                  transaction.type === "buy" 
+                                                    ? "bg-green-100 text-green-800" 
+                                                    : "bg-red-100 text-red-800"
+                                                }`}>
+                                                  {transaction.type === "buy" ? "Achat" : "Vente"}
+                                                </span>
+                                              </TableCell>
+                                              <TableCell>{transaction.symbol}</TableCell>
+                                              <TableCell>{transaction.shares}</TableCell>
+                                              <TableCell>
+                                                {transaction.price.toLocaleString()} {transaction.currency}
+                                              </TableCell>
+                                              <TableCell>
+                                                {(transaction.shares * transaction.price).toLocaleString()} {transaction.currency}
+                                              </TableCell>
+                                              <TableCell>{transaction.platform}</TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}

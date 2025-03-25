@@ -21,9 +21,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Edit, Search, Eye } from "lucide-react";
+import { Edit, Search, Eye, RefreshCw, User } from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -45,6 +52,8 @@ const TransactionManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterCurrency, setFilterCurrency] = useState<string>("all");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -124,31 +133,71 @@ const TransactionManagement = () => {
     }
   };
 
+  // Liste des devises uniques
+  const uniqueCurrencies = Array.from(new Set(transactions.map(t => t.currency))).filter(Boolean);
+
   const filteredTransactions = transactions.filter(transaction => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = 
       transaction.symbol?.toLowerCase().includes(searchLower) ||
       transaction.user_email?.toLowerCase().includes(searchLower) ||
       transaction.platform?.toLowerCase().includes(searchLower) ||
-      transaction.sector?.toLowerCase().includes(searchLower)
-    );
+      transaction.sector?.toLowerCase().includes(searchLower) ||
+      transaction.user_id?.toLowerCase().includes(searchLower);
+    
+    const matchesType = filterType === "all" || transaction.type === filterType;
+    const matchesCurrency = filterCurrency === "all" || transaction.currency === filterCurrency;
+    
+    return matchesSearch && matchesType && matchesCurrency;
   });
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Rechercher une transaction..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Rechercher par symbole, utilisateur, ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <Button onClick={fetchTransactions} variant="outline" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Actualiser
+          </Button>
         </div>
-        <Button onClick={fetchTransactions} variant="outline">
-          Actualiser
-        </Button>
+        
+        <div className="flex flex-wrap gap-4">
+          <div className="w-48">
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Type de transaction" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les types</SelectItem>
+                <SelectItem value="buy">Achat</SelectItem>
+                <SelectItem value="sell">Vente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="w-48">
+            <Select value={filterCurrency} onValueChange={setFilterCurrency}>
+              <SelectTrigger>
+                <SelectValue placeholder="Devise" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les devises</SelectItem>
+                {uniqueCurrencies.map(currency => (
+                  <SelectItem key={currency} value={currency}>{currency}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -228,6 +277,10 @@ const TransactionManagement = () => {
                                     <p className="text-sm text-gray-500">{selectedTransaction.id}</p>
                                   </div>
                                   <div>
+                                    <p className="text-sm font-medium">ID Utilisateur</p>
+                                    <p className="text-sm text-gray-500">{selectedTransaction.user_id}</p>
+                                  </div>
+                                  <div>
                                     <p className="text-sm font-medium">Utilisateur</p>
                                     <p className="text-sm text-gray-500">{selectedTransaction.user_email}</p>
                                   </div>
@@ -281,9 +334,19 @@ const TransactionManagement = () => {
                               </div>
                             )}
                             <DialogFooter>
-                              <Button variant="outline" onClick={() => setSelectedTransaction(null)}>
-                                Fermer
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  className="flex items-center gap-2"
+                                  onClick={() => window.open(`/admin?user=${selectedTransaction.user_id}`, '_blank')}
+                                >
+                                  <User className="h-4 w-4" />
+                                  Voir l'utilisateur
+                                </Button>
+                                <Button variant="outline" onClick={() => setSelectedTransaction(null)}>
+                                  Fermer
+                                </Button>
+                              </div>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>

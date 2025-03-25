@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import UserManagement from "./components/UserManagement";
@@ -12,6 +12,9 @@ const AdminPage = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const userIdParam = searchParams.get('user');
+  const defaultTab = userIdParam ? "users" : "transactions";
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -75,7 +78,7 @@ const AdminPage = () => {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Panneau d'administration</h1>
       
-      <Tabs defaultValue="users" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
@@ -86,7 +89,7 @@ const AdminPage = () => {
             <CardHeader>
               <CardTitle>Gestion des utilisateurs</CardTitle>
               <CardDescription>
-                Consultez et gérez les comptes utilisateurs de la plateforme.
+                Consultez et gérez les comptes utilisateurs de la plateforme. Recherchez par ID, email ou pays.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -100,7 +103,7 @@ const AdminPage = () => {
             <CardHeader>
               <CardTitle>Gestion des transactions</CardTitle>
               <CardDescription>
-                Consultez et modifiez les transactions des utilisateurs.
+                Consultez et filtrez toutes les transactions des utilisateurs. Accédez aux détails complets et aux profils des utilisateurs.
               </CardDescription>
             </CardHeader>
             <CardContent>
