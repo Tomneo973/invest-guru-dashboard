@@ -13,6 +13,8 @@ import StatisticsPage from "./pages/statistics/StatisticsPage";
 import DividendsPage from "./pages/dividends/DividendsPage";
 import StockAnalysisPage from "./pages/stock-analysis/StockAnalysisPage";
 import ProfilePage from "./pages/profile/ProfilePage";
+import AdminPage from "./pages/admin/AdminPage";
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +86,9 @@ const App = () => (
               </LayoutRoute>
             }
           />
+          {/* Routes d'administration */}
+          <Route path="/admin-login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
