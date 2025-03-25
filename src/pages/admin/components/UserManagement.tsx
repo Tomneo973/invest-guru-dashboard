@@ -25,7 +25,7 @@ import { Shield, Edit, Search, RefreshCw, UserCheck, Eye } from "lucide-react";
 
 interface User {
   id: string;
-  email: string;
+  email?: string;
   created_at: string;
   profile?: {
     id: string;
@@ -91,12 +91,13 @@ const UserManagement = () => {
         return;
       }
 
-      // Récupérer les utilisateurs de Supabase Auth (nécessite l'accès service_role)
-      // Note: Dans une implémentation réelle, cela devrait être fait via une fonction Edge ou un backend sécurisé
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error("Erreur lors de la récupération des utilisateurs:", authError);
+      // Récupérer les profils des utilisateurs au lieu de tenter d'accéder à auth.users
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*");
+
+      if (profilesError) {
+        console.error("Erreur lors de la récupération des profils:", profilesError);
         toast({
           title: "Erreur",
           description: "Impossible de récupérer la liste des utilisateurs.",
@@ -105,21 +106,16 @@ const UserManagement = () => {
         return;
       }
 
-      // Récupérer les profils des utilisateurs
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*");
+      // Récupérer les emails des utilisateurs (si disponible via RLS)
+      // Note: Cela peut nécessiter une fonction RPC spéciale si vous souhaitez avoir les emails
+      // Pour l'instant, nous allons utiliser uniquement les profils
 
-      if (profilesError) {
-        console.error("Erreur lors de la récupération des profils:", profilesError);
-      }
-
-      // Associer les profils aux utilisateurs
-      const usersWithProfiles = authUsers.users.map((user: any) => {
-        const profile = profiles?.find((p) => p.id === user.id);
+      // Créer un tableau d'utilisateurs à partir des profils
+      const usersWithProfiles = profiles.map((profile: any) => {
         return {
-          ...user,
-          profile: profile || null
+          id: profile.id,
+          created_at: profile.created_at,
+          profile: profile
         };
       });
 
@@ -207,7 +203,6 @@ const UserManagement = () => {
   const filteredUsers = users.filter(user => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      user.email?.toLowerCase().includes(searchLower) ||
       user.id?.toLowerCase().includes(searchLower) ||
       user.profile?.country?.toLowerCase().includes(searchLower)
     );
@@ -219,7 +214,7 @@ const UserManagement = () => {
         <div className="relative flex-1">
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Rechercher par ID, email, pays..."
+            placeholder="Rechercher par ID, pays..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
@@ -240,7 +235,7 @@ const UserManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Date d'inscription</TableHead>
                 <TableHead>Pays</TableHead>
                 <TableHead>Rôle</TableHead>
@@ -257,7 +252,7 @@ const UserManagement = () => {
               ) : (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="font-mono text-xs">{user.id}</TableCell>
                     <TableCell>
                       {new Date(user.created_at).toLocaleDateString("fr-FR")}
                     </TableCell>
@@ -290,7 +285,7 @@ const UserManagement = () => {
                             <DialogHeader>
                               <DialogTitle>Détails de l'utilisateur</DialogTitle>
                               <DialogDescription>
-                                Informations détaillées sur {user.email}
+                                Informations détaillées sur l'utilisateur {user.id}
                               </DialogDescription>
                             </DialogHeader>
                             {selectedUser && (
@@ -298,11 +293,7 @@ const UserManagement = () => {
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <p className="text-sm font-medium">ID</p>
-                                    <p className="text-sm text-gray-500">{selectedUser.id}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium">Email</p>
-                                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                                    <p className="text-sm text-gray-500 font-mono">{selectedUser.id}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium">Date d'inscription</p>
