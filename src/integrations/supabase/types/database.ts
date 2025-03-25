@@ -120,28 +120,34 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          birthday: string | null
+          country: string | null
           created_at: string
           id: string
+          premium_until: string | null
+          role: string
           updated_at: string
-          avatar_url?: string
-          birthday?: string
-          country?: string
         }
         Insert: {
+          avatar_url?: string | null
+          birthday?: string | null
+          country?: string | null
           created_at?: string
           id: string
+          premium_until?: string | null
+          role?: string
           updated_at?: string
-          avatar_url?: string
-          birthday?: string
-          country?: string
         }
         Update: {
+          avatar_url?: string | null
+          birthday?: string | null
+          country?: string | null
           created_at?: string
           id?: string
+          premium_until?: string | null
+          role?: string
           updated_at?: string
-          avatar_url?: string
-          birthday?: string
-          country?: string
         }
         Relationships: []
       }
@@ -234,6 +240,12 @@ export type Database = {
           sector: string
           currency: string
         }[]
+      }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
       }
       update_portfolio_daily_holdings: {
         Args: Record<PropertyKey, never>

@@ -27,14 +27,11 @@ interface User {
   id: string;
   email?: string;
   created_at: string;
-  profile?: {
-    id: string;
-    created_at: string;
-    birthday: string | null;
-    country: string | null;
-    avatar_url: string | null;
-    role: string;
-  };
+  role: string;
+  avatar_url?: string | null;
+  birthday?: string | null;
+  country?: string | null;
+  premium_until?: string | null;
 }
 
 interface UserTransactions {
@@ -91,7 +88,7 @@ const UserManagement = () => {
         return;
       }
 
-      // Récupérer les profils des utilisateurs au lieu de tenter d'accéder à auth.users
+      // Récupérer les profils des utilisateurs depuis la table profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*");
@@ -106,20 +103,18 @@ const UserManagement = () => {
         return;
       }
 
-      // Récupérer les emails des utilisateurs (si disponible via RLS)
-      // Note: Cela peut nécessiter une fonction RPC spéciale si vous souhaitez avoir les emails
-      // Pour l'instant, nous allons utiliser uniquement les profils
+      // Convertir les profils au format attendu
+      const usersData = profiles.map((profile: any) => ({
+        id: profile.id,
+        created_at: profile.created_at,
+        role: profile.role,
+        avatar_url: profile.avatar_url,
+        birthday: profile.birthday,
+        country: profile.country,
+        premium_until: profile.premium_until
+      }));
 
-      // Créer un tableau d'utilisateurs à partir des profils
-      const usersWithProfiles = profiles.map((profile: any) => {
-        return {
-          id: profile.id,
-          created_at: profile.created_at,
-          profile: profile
-        };
-      });
-
-      setUsers(usersWithProfiles);
+      setUsers(usersData);
     } catch (error) {
       console.error("Erreur:", error);
       toast({
@@ -174,13 +169,10 @@ const UserManagement = () => {
 
       // Mettre à jour l'état local
       setUsers(users.map(user => {
-        if (user.id === userId && user.profile) {
+        if (user.id === userId) {
           return {
             ...user,
-            profile: {
-              ...user.profile,
-              role: newRole
-            }
+            role: newRole
           };
         }
         return user;
@@ -204,7 +196,7 @@ const UserManagement = () => {
     const searchLower = searchTerm.toLowerCase();
     return (
       user.id?.toLowerCase().includes(searchLower) ||
-      user.profile?.country?.toLowerCase().includes(searchLower)
+      user.country?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -256,14 +248,14 @@ const UserManagement = () => {
                     <TableCell>
                       {new Date(user.created_at).toLocaleDateString("fr-FR")}
                     </TableCell>
-                    <TableCell>{user.profile?.country || "Non spécifié"}</TableCell>
+                    <TableCell>{user.country || "Non spécifié"}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.profile?.role === "admin" 
+                        user.role === "admin" 
                           ? "bg-purple-100 text-purple-800" 
                           : "bg-gray-100 text-gray-800"
                       }`}>
-                        {user.profile?.role || "user"}
+                        {user.role || "user"}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -304,21 +296,21 @@ const UserManagement = () => {
                                   <div>
                                     <p className="text-sm font-medium">Pays</p>
                                     <p className="text-sm text-gray-500">
-                                      {selectedUser.profile?.country || "Non spécifié"}
+                                      {selectedUser.country || "Non spécifié"}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium">Date de naissance</p>
                                     <p className="text-sm text-gray-500">
-                                      {selectedUser.profile?.birthday 
-                                        ? new Date(selectedUser.profile.birthday).toLocaleDateString("fr-FR") 
+                                      {selectedUser.birthday 
+                                        ? new Date(selectedUser.birthday).toLocaleDateString("fr-FR") 
                                         : "Non spécifiée"}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium">Rôle</p>
                                     <p className="text-sm text-gray-500">
-                                      {selectedUser.profile?.role || "user"}
+                                      {selectedUser.role || "user"}
                                     </p>
                                   </div>
                                 </div>
@@ -389,11 +381,11 @@ const UserManagement = () => {
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => toggleAdminRole(user.id, user.profile?.role || "user")}
-                          title={user.profile?.role === "admin" ? "Retirer les droits admin" : "Promouvoir en admin"}
+                          onClick={() => toggleAdminRole(user.id, user.role || "user")}
+                          title={user.role === "admin" ? "Retirer les droits admin" : "Promouvoir en admin"}
                         >
                           <Shield className={`h-4 w-4 ${
-                            user.profile?.role === "admin" ? "text-purple-600" : "text-gray-400"
+                            user.role === "admin" ? "text-purple-600" : "text-gray-400"
                           }`} />
                         </Button>
                       </div>
