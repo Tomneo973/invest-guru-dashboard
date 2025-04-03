@@ -35,7 +35,34 @@ export const useAdminActions = () => {
     }
   };
 
+  // Nouvelle fonction pour vérifier si l'utilisateur actuel est admin
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        return false;
+      }
+
+      const { data: userProfile, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error || !userProfile) {
+        return false;
+      }
+
+      return userProfile.role === "admin";
+    } catch (error) {
+      console.error("Erreur lors de la vérification du statut admin:", error);
+      return false;
+    }
+  };
+
   return {
     toggleAdminRole,
+    checkAdminStatus
   };
 };
