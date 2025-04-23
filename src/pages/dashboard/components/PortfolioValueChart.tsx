@@ -24,6 +24,24 @@ import { usePortfolioHistory } from "./hooks/usePortfolioHistory";
 import { TimeRangeSelector } from "./TimeRangeSelector";
 import { TimeRange, useTimeRangeFilter } from "./hooks/useTimeRangeFilter";
 
+const VARIATION_THRESHOLD = 0.5; // 50% variation threshold
+
+const filterAnomalies = (data: any[]) => {
+  if (!data || data.length === 0) return [];
+  
+  return data.filter((item, index) => {
+    if (index === 0) return true; // Keep first point
+    
+    const previousValue = data[index - 1].portfolioValue;
+    const currentValue = item.portfolioValue;
+    
+    if (previousValue === 0) return true;
+    
+    const variation = Math.abs((currentValue - previousValue) / previousValue);
+    return variation <= VARIATION_THRESHOLD;
+  });
+};
+
 export function PortfolioValueChart() {
   const [selectedRange, setSelectedRange] = React.useState<TimeRange>("1m");
   const { historyData, isLoading, updateHistoricalData } = usePortfolioHistory();
@@ -39,9 +57,14 @@ export function PortfolioValueChart() {
 
   const filteredData = React.useMemo(() => {
     if (!historyData) return [];
-    return historyData.filter(
+    
+    // First filter by date range
+    const dateFiltered = historyData.filter(
       (data) => new Date(data.date) >= startDate
     );
+    
+    // Then filter out anomalies
+    return filterAnomalies(dateFiltered);
   }, [historyData, startDate]);
 
   const handleUpdateHistoricalData = async () => {
