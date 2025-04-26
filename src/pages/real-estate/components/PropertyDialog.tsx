@@ -52,6 +52,11 @@ export function PropertyDialog({
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Récupérer l'utilisateur actuel
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error("Utilisateur non authentifié");
+      
       const payload = {
         name: data.name,
         address: data.address,
@@ -79,6 +84,8 @@ export function PropertyDialog({
         total_rents_collected: data.total_rents_collected
           ? parseFloat(data.total_rents_collected.toString())
           : 0,
+        // Ajouter explicitement l'ID de l'utilisateur
+        user_id: user.id
       };
 
       if (isEditing && property) {
@@ -88,7 +95,6 @@ export function PropertyDialog({
           .eq("id", property.id);
         if (error) throw error;
       } else {
-        // Fix: Inclure user_id et s'assurer qu'on n'insère pas un tableau
         const { error } = await supabase.from("real_estate").insert(payload);
         if (error) throw error;
       }
