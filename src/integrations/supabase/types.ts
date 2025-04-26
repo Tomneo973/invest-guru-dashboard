@@ -229,15 +229,19 @@ export type Database = {
           created_at: string
           id: string
           is_rented: boolean | null
+          is_sold: boolean | null
           loan_amount: number | null
           loan_duration_months: number | null
           loan_end_date: string | null
           loan_rate: number | null
           loan_start_date: string | null
+          monthly_payment: number | null
           monthly_rent: number | null
           name: string
           purchase_price: number
           repaid_capital: number | null
+          sale_date: string | null
+          sale_price: number | null
           total_rents_collected: number | null
           updated_at: string
           user_id: string
@@ -248,15 +252,19 @@ export type Database = {
           created_at?: string
           id?: string
           is_rented?: boolean | null
+          is_sold?: boolean | null
           loan_amount?: number | null
           loan_duration_months?: number | null
           loan_end_date?: string | null
           loan_rate?: number | null
           loan_start_date?: string | null
+          monthly_payment?: number | null
           monthly_rent?: number | null
           name: string
           purchase_price: number
           repaid_capital?: number | null
+          sale_date?: string | null
+          sale_price?: number | null
           total_rents_collected?: number | null
           updated_at?: string
           user_id: string
@@ -267,15 +275,19 @@ export type Database = {
           created_at?: string
           id?: string
           is_rented?: boolean | null
+          is_sold?: boolean | null
           loan_amount?: number | null
           loan_duration_months?: number | null
           loan_end_date?: string | null
           loan_rate?: number | null
           loan_start_date?: string | null
+          monthly_payment?: number | null
           monthly_rent?: number | null
           name?: string
           purchase_price?: number
           repaid_capital?: number | null
+          sale_date?: string | null
+          sale_price?: number | null
           total_rents_collected?: number | null
           updated_at?: string
           user_id?: string

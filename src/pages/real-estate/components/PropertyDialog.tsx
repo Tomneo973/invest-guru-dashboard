@@ -1,14 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTabs,
-  DialogTabsList,
-  DialogTabsTrigger,
-  DialogTabsContent,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +57,6 @@ export function PropertyDialog({
       : "",
   });
 
-  // Calcul de la mensualité en fonction des données du prêt
   const calculateMonthlyPayment = (): number | null => {
     const loanAmount = parseFloat(formData.loan_amount.toString());
     const loanRate = parseFloat(formData.loan_rate.toString());
@@ -73,7 +67,6 @@ export function PropertyDialog({
     }
     
     const monthlyRate = loanRate / 100 / 12;
-    // Formule de calcul des mensualités: P * r * (1 + r)^n / ((1 + r)^n - 1)
     const monthlyPayment = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, loanDuration) / 
                          (Math.pow(1 + monthlyRate, loanDuration) - 1);
     
@@ -82,7 +75,6 @@ export function PropertyDialog({
 
   const monthlyPayment = calculateMonthlyPayment();
   
-  // Calcul de la plus/moins value en cas de vente
   const calculateCapitalGain = (): number | null => {
     const purchasePrice = parseFloat(formData.purchase_price.toString());
     const salePrice = parseFloat(formData.sale_price.toString());
@@ -98,7 +90,6 @@ export function PropertyDialog({
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Récupérer l'utilisateur actuel
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) throw new Error("Utilisateur non authentifié");
@@ -134,7 +125,6 @@ export function PropertyDialog({
         sale_date: isSold && data.sale_date ? data.sale_date : null,
         sale_price: isSold && data.sale_price ? parseFloat(data.sale_price.toString()) : null,
         monthly_payment: monthlyPayment,
-        // Ajouter explicitement l'ID de l'utilisateur
         user_id: user.id
       };
 
