@@ -63,7 +63,7 @@ export function PropertyDialog({
           ? parseInt(data.loan_duration_months.toString())
           : null,
         loan_start_date: data.loan_start_date || null,
-        loan_end_date: data.loan_start_date
+        loan_end_date: data.loan_start_date && data.loan_duration_months
           ? new Date(
               new Date(data.loan_start_date).setMonth(
                 new Date(data.loan_start_date).getMonth() +
@@ -88,7 +88,8 @@ export function PropertyDialog({
           .eq("id", property.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("real_estate").insert([payload]);
+        // Fix: Inclure user_id et s'assurer qu'on n'insère pas un tableau
+        const { error } = await supabase.from("real_estate").insert(payload);
         if (error) throw error;
       }
     },
