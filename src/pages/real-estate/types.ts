@@ -17,4 +17,15 @@ export interface RealEstateProperty {
   total_rents_collected: number;
   created_at: string;
   updated_at: string;
+  // Nouvelles propriétés
+  is_sold: boolean;
+  sale_date: string | null;
+  sale_price: number | null;
+  monthly_payment: number | null;
+}
+
+export interface PropertyPerformance {
+  month: string;
+  cashflow: number;
+  cumulativeCashflow: number;
 }
