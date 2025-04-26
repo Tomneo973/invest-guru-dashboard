@@ -1,0 +1,330 @@
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { useState } from "react";
+import { RealEstateProperty } from "../types";
+import { Switch } from "@/components/ui/switch";
+
+interface PropertyDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  property?: RealEstateProperty | null;
+}
+
+export function PropertyDialog({
+  open,
+  onOpenChange,
+  property,
+}: PropertyDialogProps) {
+  const isEditing = !!property;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isRented, setIsRented] = useState(property?.is_rented ?? false);
+
+  const [formData, setFormData] = useState({
+    name: property?.name ?? "",
+    address: property?.address ?? "",
+    purchase_price: property?.purchase_price ?? "",
+    acquisition_date: property?.acquisition_date
+      ? format(new Date(property.acquisition_date), "yyyy-MM-dd")
+      : "",
+    loan_amount: property?.loan_amount ?? "",
+    loan_rate: property?.loan_rate ?? "",
+    loan_duration_months: property?.loan_duration_months ?? "",
+    loan_start_date: property?.loan_start_date
+      ? format(new Date(property.loan_start_date), "yyyy-MM-dd")
+      : "",
+    monthly_rent: property?.monthly_rent ?? "",
+    repaid_capital: property?.repaid_capital ?? "",
+    total_rents_collected: property?.total_rents_collected ?? "",
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const payload = {
+        name: data.name,
+        address: data.address,
+        purchase_price: parseFloat(data.purchase_price.toString()),
+        acquisition_date: data.acquisition_date,
+        loan_amount: data.loan_amount ? parseFloat(data.loan_amount.toString()) : null,
+        loan_rate: data.loan_rate ? parseFloat(data.loan_rate.toString()) : null,
+        loan_duration_months: data.loan_duration_months
+          ? parseInt(data.loan_duration_months.toString())
+          : null,
+        loan_start_date: data.loan_start_date || null,
+        loan_end_date: data.loan_start_date
+          ? new Date(
+              new Date(data.loan_start_date).setMonth(
+                new Date(data.loan_start_date).getMonth() +
+                  parseInt(data.loan_duration_months.toString())
+              )
+            )
+              .toISOString()
+              .split("T")[0]
+          : null,
+        is_rented: isRented,
+        monthly_rent: isRented && data.monthly_rent ? parseFloat(data.monthly_rent.toString()) : null,
+        repaid_capital: data.repaid_capital ? parseFloat(data.repaid_capital.toString()) : 0,
+        total_rents_collected: data.total_rents_collected
+          ? parseFloat(data.total_rents_collected.toString())
+          : 0,
+      };
+
+      if (isEditing && property) {
+        const { error } = await supabase
+          .from("real_estate")
+          .update(payload)
+          .eq("id", property.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("real_estate").insert([payload]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["real-estate"] });
+      toast({
+        title: isEditing ? "Bien mis à jour" : "Bien ajouté",
+        description: isEditing
+          ? "Le bien a été mis à jour avec succès"
+          : "Le bien a été ajouté avec succès",
+      });
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditing ? "Modifier le bien" : "Ajouter un bien"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom du bien</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Adresse</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, address: e.target.value }))
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="purchase_price">Prix d'achat (€)</Label>
+              <Input
+                id="purchase_price"
+                type="number"
+                value={formData.purchase_price}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    purchase_price: e.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="acquisition_date">Date d'acquisition</Label>
+              <Input
+                id="acquisition_date"
+                type="date"
+                value={formData.acquisition_date}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    acquisition_date: e.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="loan_amount">Montant du prêt (€)</Label>
+              <Input
+                id="loan_amount"
+                type="number"
+                value={formData.loan_amount}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    loan_amount: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="loan_rate">Taux du prêt (%)</Label>
+              <Input
+                id="loan_rate"
+                type="number"
+                step="0.01"
+                value={formData.loan_rate}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    loan_rate: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="loan_duration_months">
+                Durée du prêt (en mois)
+              </Label>
+              <Input
+                id="loan_duration_months"
+                type="number"
+                value={formData.loan_duration_months}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    loan_duration_months: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="loan_start_date">
+                Date de début du remboursement
+              </Label>
+              <Input
+                id="loan_start_date"
+                type="date"
+                value={formData.loan_start_date}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    loan_start_date: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="repaid_capital">Capital remboursé (€)</Label>
+              <Input
+                id="repaid_capital"
+                type="number"
+                value={formData.repaid_capital}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    repaid_capital: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="is_rented">Bien en location</Label>
+                <Switch
+                  id="is_rented"
+                  checked={isRented}
+                  onCheckedChange={setIsRented}
+                />
+              </div>
+            </div>
+
+            {isRented && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="monthly_rent">Loyer mensuel (€)</Label>
+                  <Input
+                    id="monthly_rent"
+                    type="number"
+                    value={formData.monthly_rent}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        monthly_rent: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="total_rents_collected">
+                    Total des loyers perçus (€)
+                  </Label>
+                  <Input
+                    id="total_rents_collected"
+                    type="number"
+                    value={formData.total_rents_collected}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        total_rents_collected: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Annuler
+            </Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {isEditing ? "Mettre à jour" : "Ajouter"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

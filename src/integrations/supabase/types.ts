@@ -222,6 +222,74 @@ export type Database = {
         }
         Relationships: []
       }
+      real_estate: {
+        Row: {
+          acquisition_date: string
+          address: string
+          created_at: string
+          id: string
+          is_rented: boolean | null
+          loan_amount: number | null
+          loan_duration_months: number | null
+          loan_end_date: string | null
+          loan_rate: number | null
+          loan_start_date: string | null
+          monthly_rent: number | null
+          name: string
+          purchase_price: number
+          repaid_capital: number | null
+          total_rents_collected: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acquisition_date: string
+          address: string
+          created_at?: string
+          id?: string
+          is_rented?: boolean | null
+          loan_amount?: number | null
+          loan_duration_months?: number | null
+          loan_end_date?: string | null
+          loan_rate?: number | null
+          loan_start_date?: string | null
+          monthly_rent?: number | null
+          name: string
+          purchase_price: number
+          repaid_capital?: number | null
+          total_rents_collected?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acquisition_date?: string
+          address?: string
+          created_at?: string
+          id?: string
+          is_rented?: boolean | null
+          loan_amount?: number | null
+          loan_duration_months?: number | null
+          loan_end_date?: string | null
+          loan_rate?: number | null
+          loan_start_date?: string | null
+          monthly_rent?: number | null
+          name?: string
+          purchase_price?: number
+          repaid_capital?: number | null
+          total_rents_collected?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "real_estate_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_prices: {
         Row: {
           closing_price: number

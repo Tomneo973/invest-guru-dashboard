@@ -11,6 +11,7 @@ import TransactionsPage from "./pages/transactions/TransactionsPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import StatisticsPage from "./pages/statistics/StatisticsPage";
 import DividendsPage from "./pages/dividends/DividendsPage";
+import RealEstatePage from "./pages/real-estate/RealEstatePage";
 import StockAnalysisPage from "./pages/stock-analysis/StockAnalysisPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import AdminPage from "./pages/admin/AdminPage";
@@ -71,6 +72,14 @@ const App = () => (
             }
           />
           <Route
+            path="/real-estate"
+            element={
+              <LayoutRoute>
+                <RealEstatePage />
+              </LayoutRoute>
+            }
+          />
+          <Route
             path="/stock-analysis"
             element={
               <LayoutRoute>
@@ -86,7 +95,6 @@ const App = () => (
               </LayoutRoute>
             }
           />
-          {/* Routes d'administration */}
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
