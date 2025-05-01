@@ -26,7 +26,7 @@ export function usePropertyMutation(onSuccess: () => void) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: PropertyFormData) => {
+    mutationFn: async (data: PropertyFormData & { id?: string }) => {
       // Récupérer l'utilisateur actuel
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -62,20 +62,36 @@ export function usePropertyMutation(onSuccess: () => void) {
         is_sold: data.is_sold,
         sale_date: data.is_sold && data.sale_date ? data.sale_date : null,
         sale_price: data.is_sold && data.sale_price ? parseFloat(data.sale_price.toString()) : null,
-        user_id: user.id
+        user_id: user.id,
+        monthly_payment: calculateMonthlyPayment(
+          data.loan_amount ? parseFloat(data.loan_amount.toString()) : 0,
+          data.loan_rate ? parseFloat(data.loan_rate.toString()) : 0,
+          data.loan_duration_months ? parseInt(data.loan_duration_months.toString()) : 0
+        )
       };
 
-      const { error } = await supabase
-        .from("real_estate")
-        .insert(payload);
-        
-      if (error) throw error;
+      if (data.id) {
+        // Mise à jour d'un bien existant
+        const { error } = await supabase
+          .from("real_estate")
+          .update(payload)
+          .eq("id", data.id);
+          
+        if (error) throw error;
+      } else {
+        // Ajout d'un nouveau bien
+        const { error } = await supabase
+          .from("real_estate")
+          .insert(payload);
+          
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["real-estate"] });
       toast({
-        title: "Bien ajouté",
-        description: "Le bien a été ajouté avec succès",
+        title: "Opération réussie",
+        description: "Le bien a été enregistré avec succès",
       });
       onSuccess();
     },
@@ -87,4 +103,49 @@ export function usePropertyMutation(onSuccess: () => void) {
       });
     },
   });
+}
+
+export function usePropertyDeletion(onSuccess: () => void) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (propertyId: string) => {
+      const { error } = await supabase
+        .from("real_estate")
+        .delete()
+        .eq("id", propertyId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["real-estate"] });
+      toast({
+        title: "Bien supprimé",
+        description: "Le bien a été supprimé avec succès",
+      });
+      onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+// Fonction utilitaire pour calculer la mensualité
+function calculateMonthlyPayment(loanAmount: number, loanRate: number, loanDuration: number): number | null {
+  if (isNaN(loanAmount) || isNaN(loanRate) || isNaN(loanDuration) || 
+      loanAmount <= 0 || loanRate <= 0 || loanDuration <= 0) {
+    return null;
+  }
+  
+  const monthlyRate = loanRate / 100 / 12;
+  const monthlyPayment = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, loanDuration) / 
+                       (Math.pow(1 + monthlyRate, loanDuration) - 1);
+  
+  return Math.round(monthlyPayment * 100) / 100;
 }
