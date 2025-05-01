@@ -19,6 +19,11 @@ interface PropertyFormData {
   is_sold: boolean;
   sale_date?: string;
   sale_price?: string | number;
+  // Nouveaux champs pour les impôts
+  property_tax?: string | number;
+  housing_tax?: string | number;
+  income_tax_rate?: string | number;
+  other_taxes?: string | number;
 }
 
 export function usePropertyMutation(onSuccess: () => void) {
@@ -67,7 +72,12 @@ export function usePropertyMutation(onSuccess: () => void) {
           data.loan_amount ? parseFloat(data.loan_amount.toString()) : 0,
           data.loan_rate ? parseFloat(data.loan_rate.toString()) : 0,
           data.loan_duration_months ? parseInt(data.loan_duration_months.toString()) : 0
-        )
+        ),
+        // Nouveaux champs pour les impôts
+        property_tax: data.property_tax ? parseFloat(data.property_tax.toString()) : null,
+        housing_tax: data.housing_tax ? parseFloat(data.housing_tax.toString()) : null,
+        income_tax_rate: data.income_tax_rate ? parseFloat(data.income_tax_rate.toString()) : null,
+        other_taxes: data.other_taxes ? parseFloat(data.other_taxes.toString()) : null
       };
 
       if (data.id) {

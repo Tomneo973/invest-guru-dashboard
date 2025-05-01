@@ -1,189 +1,127 @@
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { RealEstateProperty } from "../types";
-import { Building, Home, TrendingUp, ChevronDown } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Euro } from "lucide-react";
 
 interface PropertyCardProps {
   property: RealEstateProperty;
-  onClick: () => void;
+  onClick: (property: RealEstateProperty) => void;
 }
 
 export function PropertyCard({ property, onClick }: PropertyCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  
   const formatter = new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'EUR',
   });
   
-  // Calculer le cash-flow mensuel
-  const calculateMonthlyFlow = (): number => {
-    const monthlyRent = property.is_rented ? (property.monthly_rent || 0) : 0;
-    const monthlyPayment = property.monthly_payment || 0;
-    return monthlyRent - monthlyPayment;
-  };
+  // Calcul du cash-flow mensuel
+  const monthlyPayment = property.monthly_payment || 0;
+  const monthlyRent = property.is_rented ? (property.monthly_rent || 0) : 0;
   
-  const monthlyFlow = calculateMonthlyFlow();
+  // Calcul des taxes mensuelles
+  const monthlyTaxes = ((property.property_tax || 0) + 
+                        (property.housing_tax || 0) + 
+                        (property.other_taxes || 0)) / 12;
   
-  // Calculer la rentabilité mensuelle
-  const calculateMonthlyReturn = (): number => {
-    if (property.purchase_price <= 0) return 0;
-    
-    const annualReturn = calculateMonthlyFlow() * 12;
-    return (annualReturn / property.purchase_price) * 100;
-  };
+  const cashflow = monthlyRent - monthlyPayment - monthlyTaxes;
   
-  const monthlyReturn = calculateMonthlyReturn();
+  // Calcul de la rentabilité brute (avant impôts)
+  const annualRent = monthlyRent * 12;
+  const grossYield = property.purchase_price > 0 ? (annualRent / property.purchase_price) * 100 : 0;
   
-  // Calculer la plus-value en cas de vente
-  const calculateCapitalGain = (): number | null => {
-    if (!property.is_sold || !property.sale_price) return null;
-    return property.sale_price - property.purchase_price;
-  };
-  
-  const capitalGain = calculateCapitalGain();
-  
-  const handleExpandClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpanded(!expanded);
-  };
-  
-  const statusIcon = property.is_sold 
-    ? <Home className="h-5 w-5 text-orange-400" /> 
-    : property.is_rented 
-      ? <TrendingUp className="h-5 w-5 text-green-500" /> 
-      : <Building className="h-5 w-5 text-gray-400" />;
-  
-  const statusText = property.is_sold 
-    ? "Vendu" 
-    : property.is_rented 
-      ? "Loué" 
-      : "Non loué";
-      
-  const statusColor = property.is_sold 
-    ? "text-orange-400" 
-    : property.is_rented 
-      ? "text-green-500" 
-      : "text-gray-400";
+  // Calcul de la rentabilité nette (après impôts)
+  const annualCashflow = cashflow * 12;
+  const netYield = property.purchase_price > 0 ? (annualCashflow / property.purchase_price) * 100 : 0;
 
   return (
-    <Card 
-      className="cursor-pointer transition-all hover:shadow-lg"
-      onClick={onClick}
-    >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg">{property.name}</h3>
-            <p className="text-sm text-gray-500">{property.address}</p>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3 pt-4 px-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-lg">{property.name}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">{property.address}</p>
           </div>
-          {statusIcon}
+          <Badge
+            variant={
+              property.is_sold
+                ? "destructive"
+                : property.is_rented
+                ? "default"
+                : "outline"
+            }
+          >
+            {property.is_sold
+              ? "Vendu"
+              : property.is_rented
+              ? "Loué"
+              : "Non loué"}
+          </Badge>
         </div>
-        
-        <div className="mt-4 space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-500">Prix d'achat:</span>
-            <span className="font-medium">{formatter.format(property.purchase_price)}</span>
-          </div>
-
-          {property.is_sold && property.sale_price && (
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Prix de vente:</span>
-              <span className="font-medium">{formatter.format(property.sale_price)}</span>
-            </div>
-          )}
-
-          {property.is_rented && property.monthly_rent && (
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Loyer mensuel:</span>
-              <span className="font-medium">{formatter.format(property.monthly_rent)}</span>
-            </div>
-          )}
-          
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Date d'acquisition:</span>
-            <span className="font-medium">
-              {format(new Date(property.acquisition_date), 'dd MMM yyyy', { locale: fr })}
-            </span>
+      </CardHeader>
+      <CardContent className="pb-4 px-4">
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Prix d'achat</p>
+            <p className="text-sm font-semibold">{formatter.format(property.purchase_price)}</p>
           </div>
           
-          <div className="flex justify-between items-center mt-1 pt-1 border-t border-gray-100">
-            <span className={`text-sm ${statusColor}`}>
-              {statusText}
-            </span>
-            
-            {!property.is_sold && property.is_rented && (
-              <span className={`text-sm font-medium ${monthlyFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {monthlyFlow >= 0 ? '+' : ''}{formatter.format(monthlyFlow)}/mois
-              </span>
-            )}
-            
-            {property.is_sold && capitalGain !== null && (
-              <span className={`text-sm font-medium ${capitalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {capitalGain >= 0 ? '+' : ''}{formatter.format(capitalGain)}
-              </span>
-            )}
-          </div>
+          {property.is_sold && property.sale_price ? (
+            <div>
+              <p className="text-xs text-muted-foreground">Prix de vente</p>
+              <p className="text-sm font-semibold">{formatter.format(property.sale_price)}</p>
+            </div>
+          ) : (
+            <>
+              {property.is_rented && property.monthly_rent ? (
+                <div>
+                  <p className="text-xs text-muted-foreground">Loyer mensuel</p>
+                  <p className="text-sm font-semibold">{formatter.format(property.monthly_rent)}</p>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
-        
-        <button 
-          className="w-full flex items-center justify-center mt-4 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          onClick={handleExpandClick}
-        >
-          {expanded ? "Moins d'infos" : "Plus d'infos"}
-          <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expanded ? 'transform rotate-180' : ''}`} />
-        </button>
-        
-        {expanded && (
-          <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            {property.loan_amount && (
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Montant du prêt:</span>
-                <span className="font-medium">{formatter.format(property.loan_amount)}</span>
-              </div>
-            )}
-            
-            {property.repaid_capital > 0 && (
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Capital remboursé:</span>
-                <span className="font-medium">{formatter.format(property.repaid_capital)}</span>
-              </div>
-            )}
-            
-            {property.loan_rate && (
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Taux d'emprunt:</span>
-                <span className="font-medium">{property.loan_rate}%</span>
-              </div>
-            )}
-            
-            {property.monthly_payment && (
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Mensualité:</span>
-                <span className="font-medium">{formatter.format(property.monthly_payment)}</span>
-              </div>
-            )}
-            
-            {property.is_rented && property.total_rents_collected > 0 && (
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Total loyers perçus:</span>
-                <span className="font-medium">{formatter.format(property.total_rents_collected)}</span>
-              </div>
-            )}
-            
-            {!property.is_sold && property.is_rented && (
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Rentabilité:</span>
-                <span className={`font-medium ${monthlyReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {monthlyReturn.toFixed(2)}%
-                </span>
-              </div>
-            )}
+
+        {property.is_rented && !property.is_sold && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Cash-flow mensuel</p>
+              <p className={`text-sm font-semibold ${cashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatter.format(cashflow)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Taxes mensuelles</p>
+              <p className="text-sm font-semibold text-red-600">
+                {formatter.format(monthlyTaxes)}
+              </p>
+            </div>
           </div>
         )}
+        
+        {property.is_rented && !property.is_sold && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Rentabilité brute</p>
+              <p className={`text-sm font-semibold ${grossYield >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {grossYield.toFixed(2)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Rentabilité nette</p>
+              <p className={`text-sm font-semibold ${netYield >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {netYield.toFixed(2)}%
+              </p>
+            </div>
+          </div>
+        )}
+        
+        <Button onClick={() => onClick(property)} className="w-full mt-4" variant="outline" size="sm">
+          <Euro className="mr-2 h-4 w-4" />
+          {property.is_sold ? "Voir le détail" : "Gérer le bien"}
+        </Button>
       </CardContent>
     </Card>
   );

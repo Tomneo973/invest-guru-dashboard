@@ -16,6 +16,8 @@ export function usePropertyStats(properties: RealEstateProperty[] | undefined) {
         totalRentsCollected: 0,
         monthlyRevenue: 0,
         monthlyExpenses: 0,
+        totalTaxes: 0,
+        monthlyTaxes: 0,
       };
     }
 
@@ -47,6 +49,13 @@ export function usePropertyStats(properties: RealEstateProperty[] | undefined) {
         if (!property.is_sold && property.monthly_payment) {
           acc.monthlyExpenses += property.monthly_payment;
         }
+        
+        // Taxes annuelles
+        const propertyTaxes = (property.property_tax || 0) + 
+                              (property.housing_tax || 0) + 
+                              (property.other_taxes || 0);
+        acc.totalTaxes += propertyTaxes;
+        acc.monthlyTaxes += propertyTaxes / 12;
 
         return acc;
       },
@@ -61,6 +70,8 @@ export function usePropertyStats(properties: RealEstateProperty[] | undefined) {
         totalRentsCollected: 0,
         monthlyRevenue: 0,
         monthlyExpenses: 0,
+        totalTaxes: 0,
+        monthlyTaxes: 0,
       }
     );
     

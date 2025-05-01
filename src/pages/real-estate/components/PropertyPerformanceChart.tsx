@@ -38,6 +38,18 @@ export function PropertyPerformanceChart({ property }: PropertyPerformanceChartP
   };
   
   const monthlyPayment = calculateMonthlyPayment() || 0;
+
+  // Calculer les charges mensuelles liées aux impôts
+  const calculateMonthlyTaxes = (): number => {
+    const propertyTax = property.property_tax || 0;
+    const housingTax = property.housing_tax || 0;
+    const otherTaxes = property.other_taxes || 0;
+    
+    // Convertir les montants annuels en montants mensuels
+    return (propertyTax + housingTax + otherTaxes) / 12;
+  };
+  
+  const monthlyTaxes = calculateMonthlyTaxes();
   
   // Générer les données de performance pour le graphique
   const generatePerformanceData = (): PropertyPerformance[] => {
@@ -59,7 +71,8 @@ export function PropertyPerformanceChart({ property }: PropertyPerformanceChartP
     for (let i = 0; i < months; i++) {
       const currentMonth = addMonths(startDate, i);
       const monthlyRent = property.is_rented ? (property.monthly_rent || 0) : 0;
-      const cashflow = monthlyRent - monthlyPayment;
+      // Inclure les taxes dans le calcul du cash-flow
+      const cashflow = monthlyRent - monthlyPayment - monthlyTaxes;
       cumulativeCashflow += cashflow;
       
       performanceData.push({
@@ -85,7 +98,16 @@ export function PropertyPerformanceChart({ property }: PropertyPerformanceChartP
       ? property.sale_price - property.purchase_price 
       : 0;
     
-    return totalRents + capitalGain - (totalInvestment - property.repaid_capital);
+    // Déduire les impôts totaux de la rentabilité
+    const monthsOwned = property.acquisition_date ? 
+      differenceInMonths(
+        property.sale_date ? new Date(property.sale_date) : new Date(),
+        new Date(property.acquisition_date)
+      ) : 0;
+    
+    const totalTaxesPaid = monthsOwned * monthlyTaxes;
+    
+    return totalRents + capitalGain - (totalInvestment - property.repaid_capital) - totalTaxesPaid;
   };
   
   const overallReturn = calculateOverallReturn();
@@ -97,16 +119,23 @@ export function PropertyPerformanceChart({ property }: PropertyPerformanceChartP
         <CardTitle>Performance du bien</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-muted p-4 rounded-md">
             <p className="text-sm text-muted-foreground">Mensualité</p>
             <p className="text-2xl font-bold">{formatEuro(monthlyPayment)}</p>
           </div>
           
           <div className="bg-muted p-4 rounded-md">
+            <p className="text-sm text-muted-foreground">Taxes mensuelles</p>
+            <p className="text-2xl font-bold text-red-600">
+              {formatEuro(monthlyTaxes)}
+            </p>
+          </div>
+          
+          <div className="bg-muted p-4 rounded-md">
             <p className="text-sm text-muted-foreground">Cash-flow mensuel</p>
-            <p className={`text-2xl font-bold ${(property.monthly_rent || 0) - monthlyPayment >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatEuro((property.monthly_rent || 0) - monthlyPayment)}
+            <p className={`text-2xl font-bold ${(property.monthly_rent || 0) - monthlyPayment - monthlyTaxes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatEuro((property.monthly_rent || 0) - monthlyPayment - monthlyTaxes)}
             </p>
           </div>
           

@@ -17,11 +17,15 @@ export interface RealEstateProperty {
   total_rents_collected: number;
   created_at: string;
   updated_at: string;
-  // Nouvelles propriétés
   is_sold: boolean;
   sale_date: string | null;
   sale_price: number | null;
   monthly_payment: number | null;
+  // Nouveaux champs pour les impôts
+  property_tax: number | null;
+  housing_tax: number | null;
+  income_tax_rate: number | null;
+  other_taxes: number | null;
 }
 
 export interface PropertyPerformance {
@@ -29,3 +33,4 @@ export interface PropertyPerformance {
   cashflow: number;
   cumulativeCashflow: number;
 }
+

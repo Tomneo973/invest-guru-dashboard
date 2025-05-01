@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +20,11 @@ interface PropertyFormData {
   total_rents_collected: string | number;
   sale_price: string | number;
   sale_date: string;
+  // Nouveaux champs pour les impôts
+  property_tax: string | number;
+  housing_tax: string | number;
+  income_tax_rate: string | number;
+  other_taxes: string | number;
 }
 
 interface PropertyFormProps {
@@ -56,7 +60,33 @@ export function PropertyForm({ property, onSubmit, onCancel, isPending }: Proper
     sale_date: property?.sale_date 
       ? format(new Date(property.sale_date), "yyyy-MM-dd")
       : "",
+    // Nouveaux champs pour les impôts
+    property_tax: property?.property_tax ?? "",
+    housing_tax: property?.housing_tax ?? "", 
+    income_tax_rate: property?.income_tax_rate ?? "",
+    other_taxes: property?.other_taxes ?? "",
   });
+
+  // Fonction pour calculer le total des impôts
+  const calculateTotalTaxes = (): number => {
+    const propertyTax = parseFloat(formData.property_tax.toString()) || 0;
+    const housingTax = parseFloat(formData.housing_tax.toString()) || 0;
+    const otherTaxes = parseFloat(formData.other_taxes.toString()) || 0;
+    
+    return propertyTax + housingTax + otherTaxes;
+  };
+
+  const totalAnnualTaxes = calculateTotalTaxes();
+  const monthlyTaxes = totalAnnualTaxes / 12;
+  
+  // Import format from date-fns at the top
+  function format(date: Date, format: string) {
+    return new Intl.DateTimeFormat('fr-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date).split('/').join('-');
+  }
 
   const calculateMonthlyPayment = (): number | null => {
     const loanAmount = parseFloat(formData.loan_amount.toString());
@@ -93,15 +123,6 @@ export function PropertyForm({ property, onSubmit, onCancel, isPending }: Proper
     e.preventDefault();
     onSubmit(e, formData, isRented, isSold);
   };
-
-  // Import format from date-fns at the top
-  function format(date: Date, format: string) {
-    return new Intl.DateTimeFormat('fr-CA', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).format(date).split('/').join('-');
-  }
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-6">
@@ -356,18 +377,95 @@ export function PropertyForm({ property, onSubmit, onCancel, isPending }: Proper
                 }
               />
             </div>
-
-            {monthlyPayment !== null && isRented && formData.monthly_rent && (
-              <div className="col-span-1 md:col-span-2 p-4 rounded-lg border bg-muted">
-                <p className="text-sm font-medium">
-                  Cash-flow mensuel: 
-                  <span className={parseFloat(formData.monthly_rent.toString()) - monthlyPayment >= 0 ? "text-green-600 ml-2" : "text-red-600 ml-2"}>
-                    {(parseFloat(formData.monthly_rent.toString()) - monthlyPayment).toLocaleString("fr-FR")} €
-                  </span>
-                </p>
-              </div>
-            )}
           </>
+        )}
+
+        {/* Section des impôts */}
+        <div className="space-y-2 col-span-1 md:col-span-2">
+          <h3 className="text-lg font-medium">Impôts et taxes</h3>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="property_tax">Taxe foncière annuelle (€)</Label>
+          <Input
+            id="property_tax"
+            type="number"
+            value={formData.property_tax}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                property_tax: e.target.value,
+              }))
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="housing_tax">Taxe d'habitation annuelle (€)</Label>
+          <Input
+            id="housing_tax"
+            type="number"
+            value={formData.housing_tax}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                housing_tax: e.target.value,
+              }))
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="income_tax_rate">Taux d'imposition sur les revenus locatifs (%)</Label>
+          <Input
+            id="income_tax_rate"
+            type="number"
+            step="0.01"
+            value={formData.income_tax_rate}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                income_tax_rate: e.target.value,
+              }))
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="other_taxes">Autres taxes annuelles (€)</Label>
+          <Input
+            id="other_taxes"
+            type="number"
+            value={formData.other_taxes}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                other_taxes: e.target.value,
+              }))
+            }
+          />
+        </div>
+
+        {totalAnnualTaxes > 0 && (
+          <div className="col-span-1 md:col-span-2 p-4 rounded-lg border bg-muted">
+            <p className="text-sm font-medium">
+              Total des taxes annuelles: <span className="font-bold">{totalAnnualTaxes.toLocaleString("fr-FR")} € / an</span>
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Soit <span className="font-semibold">{monthlyTaxes.toLocaleString("fr-FR")} € / mois</span>
+            </p>
+          </div>
+        )}
+
+        {monthlyPayment !== null && isRented && formData.monthly_rent && (
+          <div className="col-span-1 md:col-span-2 p-4 rounded-lg border bg-muted">
+            <p className="text-sm font-medium">
+              Cash-flow mensuel (avec impôts): 
+              <span className={parseFloat(formData.monthly_rent.toString()) - monthlyPayment - monthlyTaxes >= 0 ? "text-green-600 ml-2" : "text-red-600 ml-2"}>
+                {(parseFloat(formData.monthly_rent.toString()) - monthlyPayment - monthlyTaxes).toLocaleString("fr-FR")} €
+              </span>
+            </p>
+          </div>
         )}
       </div>
 

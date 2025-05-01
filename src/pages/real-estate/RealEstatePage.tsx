@@ -63,6 +63,8 @@ export default function RealEstatePage() {
         monthlyExpenses={stats.monthlyExpenses}
         totalRentsCollected={stats.totalRentsCollected}
         totalCapitalGain={stats.totalCapitalGain}
+        totalTaxes={stats.totalTaxes}
+        monthlyTaxes={stats.monthlyTaxes}
       />
 
       {/* Filtres */}

@@ -11,6 +11,8 @@ interface StatsProps {
   monthlyExpenses: number;
   totalRentsCollected: number;
   totalCapitalGain: number;
+  totalTaxes?: number;
+  monthlyTaxes?: number;
 }
 
 export function RealEstateStats({
@@ -22,6 +24,8 @@ export function RealEstateStats({
   monthlyExpenses,
   totalRentsCollected,
   totalCapitalGain,
+  totalTaxes = 0,
+  monthlyTaxes = 0,
 }: StatsProps) {
   // Formatter pour les montants en euros
   const formatter = new Intl.NumberFormat('fr-FR', {
@@ -30,6 +34,10 @@ export function RealEstateStats({
   });
   
   const monthlyRevenue = totalMonthlyRent;
+  // Les charges mensuelles incluent maintenant les taxes mensuelles
+  const totalMonthlyExpenses = monthlyExpenses + monthlyTaxes;
+  // Cash-flow total incluant les impôts
+  const netCashFlow = monthlyRevenue - totalMonthlyExpenses;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -54,11 +62,11 @@ export function RealEstateStats({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-2xl font-bold ${monthlyRevenue - monthlyExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatter.format(monthlyRevenue - monthlyExpenses)}
+          <div className={`text-2xl font-bold ${netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatter.format(netCashFlow)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatter.format(monthlyRevenue)} revenus / {formatter.format(monthlyExpenses)} charges
+            {formatter.format(monthlyRevenue)} revenus / {formatter.format(totalMonthlyExpenses)} charges
           </p>
         </CardContent>
       </Card>
@@ -80,15 +88,13 @@ export function RealEstateStats({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Plus-value réalisée
+            Charges fiscales
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-2xl font-bold ${totalCapitalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatter.format(totalCapitalGain)}
-          </div>
+          <div className="text-2xl font-bold text-red-600">{formatter.format(totalTaxes)}/an</div>
           <p className="text-xs text-muted-foreground mt-1">
-            {totalSold} bien{totalSold > 1 ? "s" : ""} vendu{totalSold > 1 ? "s" : ""}
+            soit {formatter.format(monthlyTaxes)}/mois
           </p>
         </CardContent>
       </Card>
