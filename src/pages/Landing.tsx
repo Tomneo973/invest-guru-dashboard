@@ -1,8 +1,9 @@
 
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChartLine, DollarSign, LineChart, BarChart3 } from "lucide-react";
+import { ChartLine, DollarSign, LineChart, BarChart3, Building } from "lucide-react";
 import { MarketNewsSection } from "@/components/MarketNewsSection";
+import { RealEstateShowcase } from "@/components/RealEstateShowcase";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -28,6 +29,11 @@ const Landing = () => {
       description: "Visualisez la diversification de vos investissements par secteur et région",
       icon: BarChart3,
     },
+    {
+      title: "Patrimoine Immobilier",
+      description: "Gérez vos biens immobiliers et analysez leur rentabilité après impôts",
+      icon: Building,
+    }
   ];
 
   return (
@@ -78,7 +84,7 @@ const Landing = () => {
               Tout ce dont vous avez besoin pour gérer vos investissements
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
             {features.map((feature) => (
               <div
                 key={feature.title}
@@ -93,15 +99,30 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* Market News Section */}
+      {/* Real Estate Showcase Section */}
       <div className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900">
+              Gestion immobilière optimisée
+            </h2>
+            <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
+              Suivez la rentabilité de vos biens immobiliers en temps réel, en prenant en compte tous les frais et impôts
+            </p>
+          </div>
+          <RealEstateShowcase />
+        </div>
+      </div>
+
+      {/* Market News Section */}
+      <div className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900">
               Dernières Actualités Boursières
             </h2>
           </div>
-          <MarketNewsSection />
+          <MarketNewsSection refreshInterval={60000} />
         </div>
       </div>
 
