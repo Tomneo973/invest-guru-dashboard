@@ -227,7 +227,9 @@ export type Database = {
           acquisition_date: string
           address: string
           created_at: string
+          housing_tax: number | null
           id: string
+          income_tax_rate: number | null
           is_rented: boolean | null
           is_sold: boolean | null
           loan_amount: number | null
@@ -238,6 +240,8 @@ export type Database = {
           monthly_payment: number | null
           monthly_rent: number | null
           name: string
+          other_taxes: number | null
+          property_tax: number | null
           purchase_price: number
           repaid_capital: number | null
           sale_date: string | null
@@ -250,7 +254,9 @@ export type Database = {
           acquisition_date: string
           address: string
           created_at?: string
+          housing_tax?: number | null
           id?: string
+          income_tax_rate?: number | null
           is_rented?: boolean | null
           is_sold?: boolean | null
           loan_amount?: number | null
@@ -261,6 +267,8 @@ export type Database = {
           monthly_payment?: number | null
           monthly_rent?: number | null
           name: string
+          other_taxes?: number | null
+          property_tax?: number | null
           purchase_price: number
           repaid_capital?: number | null
           sale_date?: string | null
@@ -273,7 +281,9 @@ export type Database = {
           acquisition_date?: string
           address?: string
           created_at?: string
+          housing_tax?: number | null
           id?: string
+          income_tax_rate?: number | null
           is_rented?: boolean | null
           is_sold?: boolean | null
           loan_amount?: number | null
@@ -284,6 +294,8 @@ export type Database = {
           monthly_payment?: number | null
           monthly_rent?: number | null
           name?: string
+          other_taxes?: number | null
+          property_tax?: number | null
           purchase_price?: number
           repaid_capital?: number | null
           sale_date?: string | null

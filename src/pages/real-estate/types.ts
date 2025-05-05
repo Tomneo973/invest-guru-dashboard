@@ -21,7 +21,7 @@ export interface RealEstateProperty {
   sale_date: string | null;
   sale_price: number | null;
   monthly_payment: number | null;
-  // Nouveaux champs pour les impôts
+  // Tax fields
   property_tax: number | null;
   housing_tax: number | null;
   income_tax_rate: number | null;
@@ -33,4 +33,3 @@ export interface PropertyPerformance {
   cashflow: number;
   cumulativeCashflow: number;
 }
-
