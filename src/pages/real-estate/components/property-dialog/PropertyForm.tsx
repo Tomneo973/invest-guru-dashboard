@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,8 @@ interface PropertyFormData {
   housing_tax: string | number;
   income_tax_rate: string | number;
   other_taxes: string | number;
+  // Surface du bien
+  surface_area: string | number;
 }
 
 interface PropertyFormProps {
@@ -65,6 +68,8 @@ export function PropertyForm({ property, onSubmit, onCancel, isPending }: Proper
     housing_tax: property?.housing_tax ?? "", 
     income_tax_rate: property?.income_tax_rate ?? "",
     other_taxes: property?.other_taxes ?? "",
+    // Surface du bien
+    surface_area: property?.surface_area ?? "",
   });
 
   // Fonction pour calculer le total des impôts
@@ -76,8 +81,21 @@ export function PropertyForm({ property, onSubmit, onCancel, isPending }: Proper
     return propertyTax + housingTax + otherTaxes;
   };
 
+  // Fonction pour calculer le prix au mètre carré
+  const calculatePricePerSquareMeter = (): number | null => {
+    const purchasePrice = parseFloat(formData.purchase_price.toString());
+    const surfaceArea = parseFloat(formData.surface_area.toString());
+    
+    if (isNaN(purchasePrice) || isNaN(surfaceArea) || surfaceArea <= 0) {
+      return null;
+    }
+    
+    return Math.round((purchasePrice / surfaceArea) * 100) / 100;
+  };
+
   const totalAnnualTaxes = calculateTotalTaxes();
   const monthlyTaxes = totalAnnualTaxes / 12;
+  const pricePerSquareMeter = calculatePricePerSquareMeter();
   
   // Import format from date-fns at the top
   function format(date: Date, format: string) {
@@ -168,6 +186,21 @@ export function PropertyForm({ property, onSubmit, onCancel, isPending }: Proper
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="surface_area">Surface (m²)</Label>
+          <Input
+            id="surface_area"
+            type="number"
+            value={formData.surface_area}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                surface_area: e.target.value,
+              }))
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="acquisition_date">Date d'acquisition</Label>
           <Input
             id="acquisition_date"
@@ -182,6 +215,14 @@ export function PropertyForm({ property, onSubmit, onCancel, isPending }: Proper
             required
           />
         </div>
+
+        {pricePerSquareMeter !== null && (
+          <div className="col-span-1 md:col-span-2 p-4 rounded-lg border bg-muted">
+            <p className="text-sm font-medium">
+              Prix au mètre carré: <span className="font-bold">{pricePerSquareMeter.toLocaleString("fr-FR")} €/m²</span>
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2 col-span-1 md:col-span-2">
           <div className="flex items-center justify-between">

@@ -26,10 +26,20 @@ export interface RealEstateProperty {
   housing_tax: number | null;
   income_tax_rate: number | null;
   other_taxes: number | null;
+  // Surface information
+  surface_area: number | null;
 }
 
 export interface PropertyPerformance {
   month: string;
   cashflow: number;
   cumulativeCashflow: number;
+}
+
+export interface NeighborhoodPriceInfo {
+  averagePrice: number;
+  minPrice: number;
+  maxPrice: number;
+  source: string;
+  lastUpdated: string;
 }

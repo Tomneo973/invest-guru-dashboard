@@ -35,6 +35,11 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
   const annualCashflow = cashflow * 12;
   const netYield = property.purchase_price > 0 ? (annualCashflow / property.purchase_price) * 100 : 0;
 
+  // Calcul du prix au mètre carré
+  const pricePerSqm = property.surface_area && property.surface_area > 0 
+    ? property.purchase_price / property.surface_area 
+    : null;
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3 pt-4 px-4">
@@ -83,6 +88,21 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
             </>
           )}
         </div>
+
+        {property.surface_area && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Surface</p>
+              <p className="text-sm font-semibold">{property.surface_area} m²</p>
+            </div>
+            {pricePerSqm && (
+              <div>
+                <p className="text-xs text-muted-foreground">Prix au m²</p>
+                <p className="text-sm font-semibold">{formatter.format(pricePerSqm)}/m²</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {property.is_rented && !property.is_sold && (
           <div className="mt-3 grid grid-cols-2 gap-2">

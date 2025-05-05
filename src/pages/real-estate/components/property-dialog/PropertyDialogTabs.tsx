@@ -5,6 +5,7 @@ import { PropertyPerformanceChart } from "../PropertyPerformanceChart";
 import { LoanRepaymentSchedule } from "../LoanRepaymentSchedule";
 import { RentalIncomeSchedule } from "../RentalIncomeSchedule";
 import { PropertyForm } from "./PropertyForm";
+import { NeighborhoodPrices } from "../NeighborhoodPrices";
 
 interface PropertyDialogTabsProps {
   activeTab: string;
@@ -23,6 +24,11 @@ export function PropertyDialogTabs({
 }: PropertyDialogTabsProps) {
   const isEditing = !!property;
 
+  // Calcul du prix au mètre carré pour le bien
+  const pricePerSqm = property && property.surface_area && property.surface_area > 0 
+    ? Math.round((property.purchase_price / property.surface_area) * 100) / 100
+    : null;
+
   return (
     <>
       <TabsContent value="general">
@@ -37,7 +43,15 @@ export function PropertyDialogTabs({
       {isEditing && property && (
         <>
           <TabsContent value="performance">
-            <PropertyPerformanceChart property={property} />
+            <div className="space-y-6">
+              <PropertyPerformanceChart property={property} />
+              {property.address && (
+                <NeighborhoodPrices 
+                  propertyAddress={property.address} 
+                  propertyPricePerSqm={pricePerSqm}
+                />
+              )}
+            </div>
           </TabsContent>
           
           <TabsContent value="loan">
