@@ -6,6 +6,7 @@ import { AlertCircle, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NeighborhoodPriceInfo } from "../types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 
 interface NeighborhoodPricesProps {
   propertyAddress: string;
@@ -45,6 +46,21 @@ export function NeighborhoodPrices({ propertyAddress, propertyPricePerSqm }: Nei
     );
   }
 
+  // Calculate price position within the price range if we have all required data
+  const getPricePositionPercentage = () => {
+    if (!data || !propertyPricePerSqm) return null;
+    
+    const range = data.maxPrice - data.minPrice;
+    if (range <= 0) return 50; // Default to middle if there's no range
+    
+    let position = ((propertyPricePerSqm - data.minPrice) / range) * 100;
+    // Constrain between 0 and 100
+    position = Math.max(0, Math.min(100, position));
+    return position;
+  };
+
+  const pricePosition = getPricePositionPercentage();
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -61,7 +77,7 @@ export function NeighborhoodPrices({ propertyAddress, propertyPricePerSqm }: Nei
             <Skeleton className="h-4 w-1/2" />
           </div>
         ) : data ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <p className="text-xs text-muted-foreground">Minimum</p>
@@ -77,11 +93,27 @@ export function NeighborhoodPrices({ propertyAddress, propertyPricePerSqm }: Nei
               </div>
             </div>
             
-            {propertyPricePerSqm && (
-              <div className="pt-2 border-t">
-                <p className="text-xs text-muted-foreground">Votre bien</p>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold">{formatter.format(propertyPricePerSqm)}/m²</p>
+            {propertyPricePerSqm && pricePosition !== null && (
+              <div className="pt-3 border-t">
+                <div className="mb-2">
+                  <div className="flex justify-between mb-1">
+                    <p className="text-xs text-muted-foreground">Fourchette de prix</p>
+                    <p className="text-xs font-medium">Votre bien: {formatter.format(propertyPricePerSqm)}/m²</p>
+                  </div>
+                  <div className="relative pt-4">
+                    <Progress value={pricePosition} className="h-2" />
+                    <div 
+                      className="absolute h-4 w-4 rounded-full bg-primary border-2 border-white shadow-md -translate-x-1/2" 
+                      style={{ left: `${pricePosition}%`, top: '0px' }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <p className="text-xs">{formatter.format(data.minPrice)}</p>
+                    <p className="text-xs">{formatter.format(data.maxPrice)}</p>
+                  </div>
+                </div>
+                
+                <div className="mt-2">
                   <PerformanceIndicator 
                     propertyPrice={propertyPricePerSqm} 
                     averagePrice={data.averagePrice} 
@@ -90,7 +122,7 @@ export function NeighborhoodPrices({ propertyAddress, propertyPricePerSqm }: Nei
               </div>
             )}
             
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-3">
               Source: {data.source} • Mis à jour le {formatDate(data.lastUpdated)}
             </p>
           </div>
@@ -106,11 +138,29 @@ function PerformanceIndicator({ propertyPrice, averagePrice }: { propertyPrice: 
   const diff = ((propertyPrice - averagePrice) / averagePrice) * 100;
   
   if (Math.abs(diff) < 5) {
-    return <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded-sm">Dans la moyenne</span>;
+    return (
+      <div className="flex items-center">
+        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+          Dans la moyenne du marché
+        </span>
+      </div>
+    );
   } else if (diff < 0) {
-    return <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-800 rounded-sm">Bon achat ({diff.toFixed(0)}%)</span>;
+    return (
+      <div className="flex items-center">
+        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-md font-medium">
+          Bon achat ({diff.toFixed(0)}% sous la moyenne)
+        </span>
+      </div>
+    );
   } else {
-    return <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-sm">Prix élevé (+{diff.toFixed(0)}%)</span>;
+    return (
+      <div className="flex items-center">
+        <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md font-medium">
+          Prix supérieur à la moyenne (+{diff.toFixed(0)}%)
+        </span>
+      </div>
+    );
   }
 }
 

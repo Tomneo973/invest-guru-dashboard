@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RealEstateProperty } from "../types";
 import { Badge } from "@/components/ui/badge";
-import { Euro } from "lucide-react";
+import { Building, Euro, Home, Ruler } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 interface PropertyCardProps {
   property: RealEstateProperty;
@@ -41,11 +42,14 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
     : null;
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-3 pt-4 px-4">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+      <CardHeader className="pb-3 pt-4 px-4 bg-muted/10">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg">{property.name}</CardTitle>
+            <CardTitle className="text-lg flex items-center">
+              <Home className="h-4 w-4 mr-2 text-primary" />
+              {property.name}
+            </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">{property.address}</p>
           </div>
           <Badge
@@ -90,33 +94,47 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
         </div>
 
         {property.surface_area && (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-xs text-muted-foreground">Surface</p>
-              <p className="text-sm font-semibold">{property.surface_area} m²</p>
+          <div className="mt-3">
+            <Separator className="my-2" />
+            <div className="flex items-center mb-1">
+              <Ruler className="h-3 w-3 mr-1 text-muted-foreground" />
+              <p className="text-xs font-medium">Informations surface</p>
             </div>
-            {pricePerSqm && (
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="text-xs text-muted-foreground">Prix au m²</p>
-                <p className="text-sm font-semibold">{formatter.format(pricePerSqm)}/m²</p>
+                <p className="text-xs text-muted-foreground">Surface</p>
+                <p className="text-sm font-semibold">{property.surface_area} m²</p>
               </div>
-            )}
+              {pricePerSqm && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Prix au m²</p>
+                  <p className="text-sm font-semibold">{formatter.format(pricePerSqm)}/m²</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {property.is_rented && !property.is_sold && (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-xs text-muted-foreground">Cash-flow mensuel</p>
-              <p className={`text-sm font-semibold ${cashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatter.format(cashflow)}
-              </p>
+          <div className="mt-3">
+            <Separator className="my-2" />
+            <div className="flex items-center mb-1">
+              <Euro className="h-3 w-3 mr-1 text-muted-foreground" />
+              <p className="text-xs font-medium">Performance financière</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Taxes mensuelles</p>
-              <p className="text-sm font-semibold text-red-600">
-                {formatter.format(monthlyTaxes)}
-              </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Cash-flow mensuel</p>
+                <p className={`text-sm font-semibold ${cashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatter.format(cashflow)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Taxes mensuelles</p>
+                <p className="text-sm font-semibold text-red-600">
+                  {formatter.format(monthlyTaxes)}
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -139,7 +157,7 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
         )}
         
         <Button onClick={() => onClick(property)} className="w-full mt-4" variant="outline" size="sm">
-          <Euro className="mr-2 h-4 w-4" />
+          <Building className="mr-2 h-4 w-4" />
           {property.is_sold ? "Voir le détail" : "Gérer le bien"}
         </Button>
       </CardContent>
