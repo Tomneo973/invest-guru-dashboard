@@ -246,6 +246,7 @@ export type Database = {
           repaid_capital: number | null
           sale_date: string | null
           sale_price: number | null
+          surface_area: number | null
           total_rents_collected: number | null
           updated_at: string
           user_id: string
@@ -273,6 +274,7 @@ export type Database = {
           repaid_capital?: number | null
           sale_date?: string | null
           sale_price?: number | null
+          surface_area?: number | null
           total_rents_collected?: number | null
           updated_at?: string
           user_id: string
@@ -300,6 +302,7 @@ export type Database = {
           repaid_capital?: number | null
           sale_date?: string | null
           sale_price?: number | null
+          surface_area?: number | null
           total_rents_collected?: number | null
           updated_at?: string
           user_id?: string

@@ -1,11 +1,11 @@
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, MapPin } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NeighborhoodPriceInfo } from "../types";
-import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface NeighborhoodPricesProps {
   propertyAddress: string;
@@ -13,143 +13,112 @@ interface NeighborhoodPricesProps {
 }
 
 export function NeighborhoodPrices({ propertyAddress, propertyPricePerSqm }: NeighborhoodPricesProps) {
-  const [priceInfo, setPriceInfo] = useState<NeighborhoodPriceInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const fetchNeighborhoodPrices = async () => {
-    if (!propertyAddress) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["neighborhood-prices", propertyAddress],
+    queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("get-neighborhood-prices", {
         body: { address: propertyAddress }
       });
       
-      if (error) throw error;
-      
-      setPriceInfo(data as NeighborhoodPriceInfo);
-    } catch (err) {
-      setError("Impossible de récupérer les prix du quartier");
-      console.error("Erreur lors de la récupération des prix du quartier:", err);
-      toast({
-        title: "Erreur",
-        description: "Impossible de récupérer les prix du quartier",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (error) throw new Error(error.message);
+      return data as NeighborhoodPriceInfo;
+    },
+    enabled: !!propertyAddress,
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
 
-  useEffect(() => {
-    if (propertyAddress) {
-      fetchNeighborhoodPrices();
-    }
-  }, [propertyAddress]);
-
-  const getPriceComparisonLabel = () => {
-    if (!propertyPricePerSqm || !priceInfo) return null;
-    
-    const diff = ((propertyPricePerSqm - priceInfo.averagePrice) / priceInfo.averagePrice) * 100;
-    
-    if (Math.abs(diff) < 5) {
-      return "Dans la moyenne du marché";
-    } else if (diff < 0) {
-      return `${Math.abs(diff).toFixed(1)}% moins cher que le marché`;
-    } else {
-      return `${diff.toFixed(1)}% plus cher que le marché`;
-    }
-  };
-
-  const priceComparisonLabel = getPriceComparisonLabel();
-  const priceComparisonClass = priceComparisonLabel && propertyPricePerSqm && priceInfo
-    ? propertyPricePerSqm < priceInfo.averagePrice 
-      ? "text-green-600"
-      : propertyPricePerSqm > priceInfo.averagePrice
-        ? "text-amber-600" 
-        : "text-gray-600"
-    : "";
+  const formatter = new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0
+  });
+  
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Erreur</AlertTitle>
+        <AlertDescription>
+          Impossible de récupérer les données du quartier. Veuillez réessayer plus tard.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center">
-          <MapPin className="mr-2 h-5 w-5" />
+        <CardTitle className="text-sm font-medium flex items-center">
+          <BarChart3 className="h-4 w-4 mr-2" />
           Prix au m² dans le quartier
         </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-4">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
-        ) : error ? (
-          <div className="space-y-4">
-            <p className="text-sm text-red-500">{error}</p>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={fetchNeighborhoodPrices}
-            >
-              Réessayer
-            </Button>
-          </div>
-        ) : priceInfo ? (
-          <div className="space-y-4">
+        ) : data ? (
+          <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2">
-              <div className="text-center">
-                <p className="text-sm text-gray-500">Min</p>
-                <p className="font-semibold">{priceInfo.minPrice.toLocaleString('fr-FR')} €/m²</p>
+              <div>
+                <p className="text-xs text-muted-foreground">Minimum</p>
+                <p className="font-semibold">{formatter.format(data.minPrice)}/m²</p>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-500">Moyen</p>
-                <p className="font-semibold">{priceInfo.averagePrice.toLocaleString('fr-FR')} €/m²</p>
+              <div>
+                <p className="text-xs text-muted-foreground">Moyenne</p>
+                <p className="font-semibold">{formatter.format(data.averagePrice)}/m²</p>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-500">Max</p>
-                <p className="font-semibold">{priceInfo.maxPrice.toLocaleString('fr-FR')} €/m²</p>
+              <div>
+                <p className="text-xs text-muted-foreground">Maximum</p>
+                <p className="font-semibold">{formatter.format(data.maxPrice)}/m²</p>
               </div>
             </div>
             
             {propertyPricePerSqm && (
-              <div className="p-3 bg-gray-50 rounded-md">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Votre bien</span>
-                  <span className="font-semibold">{propertyPricePerSqm.toLocaleString('fr-FR')} €/m²</span>
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground">Votre bien</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold">{formatter.format(propertyPricePerSqm)}/m²</p>
+                  <PerformanceIndicator 
+                    propertyPrice={propertyPricePerSqm} 
+                    averagePrice={data.averagePrice} 
+                  />
                 </div>
-                {priceComparisonLabel && (
-                  <p className={`text-xs mt-1 ${priceComparisonClass}`}>
-                    {priceComparisonLabel}
-                  </p>
-                )}
               </div>
             )}
             
-            <div className="text-xs text-gray-500 flex justify-between items-center mt-2">
-              <span>Source: {priceInfo.source}</span>
-              <span>Mise à jour: {new Date(priceInfo.lastUpdated).toLocaleDateString('fr-FR')}</span>
-            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Source: {data.source} • Mis à jour le {formatDate(data.lastUpdated)}
+            </p>
           </div>
         ) : (
-          <div className="py-2">
-            <p className="text-sm text-gray-500">
-              Aucun prix disponible pour cette adresse
-            </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2"
-              onClick={fetchNeighborhoodPrices}
-            >
-              Actualiser
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground">Aucune donnée disponible pour ce quartier</p>
         )}
       </CardContent>
     </Card>
   );
+}
+
+function PerformanceIndicator({ propertyPrice, averagePrice }: { propertyPrice: number, averagePrice: number }) {
+  const diff = ((propertyPrice - averagePrice) / averagePrice) * 100;
+  
+  if (Math.abs(diff) < 5) {
+    return <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded-sm">Dans la moyenne</span>;
+  } else if (diff < 0) {
+    return <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-800 rounded-sm">Bon achat ({diff.toFixed(0)}%)</span>;
+  } else {
+    return <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-sm">Prix élevé (+{diff.toFixed(0)}%)</span>;
+  }
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }).format(date);
 }

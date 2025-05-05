@@ -1,84 +1,67 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.7";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.7'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// This function simulates fetching neighborhood price data for an address
+// In a real implementation, this would connect to an external API like
+// Zillow, Redfin, or a local real estate data provider
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { address } = await req.json();
+    const { address } = await req.json()
     
     if (!address) {
       return new Response(
-        JSON.stringify({ error: "Adresse manquante" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        JSON.stringify({ error: 'Address is required' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      )
     }
 
-    console.log(`Recherche de prix au mètre carré pour l'adresse: ${address}`);
-
-    // Simulons des données pour ce POC
-    // Dans une version réelle, on utiliserait une API comme MeilleursAgents, SeLoger ou des données gouvernementales
-    const priceData = simulateNeighborhoodPrices(address);
+    // In a real implementation, you would call an external API here
+    // For this demo, we'll generate some simulated data based on the address
+    
+    // Generate a "unique" but deterministic hash based on the address string
+    // to make the simulated data consistent for the same address
+    const addressHash = Array.from(address).reduce(
+      (hash, char) => char.charCodeAt(0) + hash, 0
+    ) % 1000 // Use modulo to keep it in a reasonable range
+    
+    // Generate values based on the hash
+    const avgPrice = 3000 + (addressHash % 5000)
+    const minPrice = avgPrice - (500 + (addressHash % 1000))
+    const maxPrice = avgPrice + (500 + (addressHash % 2000))
+    
+    // Construct the response
+    const data = {
+      averagePrice: avgPrice,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      source: "Simulation Data",
+      lastUpdated: new Date().toISOString().split('T')[0]
+    }
 
     return new Response(
-      JSON.stringify(priceData),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      JSON.stringify(data),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    )
   } catch (error) {
-    console.error("Erreur dans get-neighborhood-prices:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    )
   }
-});
-
-// Fonction de simulation pour démontrer le concept
-// Dans une vraie implémentation, on appellerait une API externe
-function simulateNeighborhoodPrices(address: string) {
-  // Extraction du code postal (si présent dans l'adresse)
-  const postalCodeMatch = address.match(/\b\d{5}\b/);
-  const postalCode = postalCodeMatch ? postalCodeMatch[0] : null;
-  
-  // Déterminer la région en fonction du code postal
-  let priceBase = 3000; // Prix par défaut
-  let variation = 1000; // Variation par défaut
-  
-  if (postalCode) {
-    const region = postalCode.substring(0, 2);
-    
-    // Ajustement des prix selon la région
-    if (region === "75") { // Paris
-      priceBase = 10000;
-      variation = 3000;
-    } else if (["77", "78", "91", "92", "93", "94", "95"].includes(region)) { // Île-de-France
-      priceBase = 5000;
-      variation = 2000;
-    } else if (["06", "13", "33", "69"].includes(region)) { // Grandes villes (Nice, Marseille, Bordeaux, Lyon)
-      priceBase = 4000;
-      variation = 1500;
-    }
-  }
-  
-  // Générer des prix avec une légère variation aléatoire
-  const averagePrice = priceBase + (Math.random() - 0.5) * variation;
-  const minPrice = averagePrice - (Math.random() * variation * 0.4);
-  const maxPrice = averagePrice + (Math.random() * variation * 0.4);
-  
-  return {
-    averagePrice: Math.round(averagePrice),
-    minPrice: Math.round(minPrice),
-    maxPrice: Math.round(maxPrice),
-    source: "Simulation de données (démonstration)",
-    lastUpdated: new Date().toISOString()
-  };
-}
+})
