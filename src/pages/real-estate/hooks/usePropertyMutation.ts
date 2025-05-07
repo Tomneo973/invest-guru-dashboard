@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +24,8 @@ interface PropertyFormData {
   housing_tax?: string | number;
   income_tax_rate?: string | number;
   other_taxes?: string | number;
+  // Surface area field
+  surface_area?: string | number;
 }
 
 export function usePropertyMutation(onSuccess: () => void) {
@@ -76,7 +79,9 @@ export function usePropertyMutation(onSuccess: () => void) {
         property_tax: data.property_tax ? parseFloat(data.property_tax.toString()) : null,
         housing_tax: data.housing_tax ? parseFloat(data.housing_tax.toString()) : null,
         income_tax_rate: data.income_tax_rate ? parseFloat(data.income_tax_rate.toString()) : null,
-        other_taxes: data.other_taxes ? parseFloat(data.other_taxes.toString()) : null
+        other_taxes: data.other_taxes ? parseFloat(data.other_taxes.toString()) : null,
+        // Fix: Add surface_area to payload
+        surface_area: data.surface_area ? parseFloat(data.surface_area.toString()) : null,
       };
 
       if (data.id) {
