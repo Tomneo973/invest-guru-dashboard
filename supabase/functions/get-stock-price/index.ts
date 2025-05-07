@@ -16,8 +16,7 @@ serve(async (req) => {
     const { symbol } = await req.json();
     console.log('Fetching stock price for:', symbol);
 
-    // Utilisons directement Yahoo Finance avec la nouvelle approche
-    const data = await fetchFromYahooFinance(symbol);
+    const data = await getStockPriceFromYahoo(symbol);
 
     return new Response(
       JSON.stringify(data),
@@ -42,20 +41,30 @@ serve(async (req) => {
   }
 });
 
-async function fetchFromYahooFinance(symbol: string) {
+async function getStockPriceFromYahoo(symbol: string) {
   try {
     console.log('Fetching from Yahoo Finance for symbol:', symbol);
     
-    // URL complète avec tous les paramètres nécessaires
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?symbol=${symbol}&period1=0&period2=9999999999&interval=1d&includePrePost=true&events=div%7Csplit`;
+    // Use the Yahoo Finance API v7 for more reliable access
+    const url = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
     
-    // Ensemble complet d'en-têtes pour imiter un navigateur
+    // Enhanced headers to better mimic a browser request
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
       'Accept-Language': 'en-US,en;q=0.9',
-      'Origin': 'https://finance.yahoo.com',
-      'Referer': `https://finance.yahoo.com/quote/${symbol}`
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="109"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'Referer': 'https://finance.yahoo.com/',
+      'Origin': 'https://finance.yahoo.com'
     };
 
     const response = await fetch(url, { headers });
@@ -66,20 +75,22 @@ async function fetchFromYahooFinance(symbol: string) {
 
     const data = await response.json();
     
-    if (data.chart.error) {
-      throw new Error(data.chart.error.description);
-    }
-
-    const result = data.chart.result?.[0];
-    if (!result || !result.meta) {
+    // Check for data availability
+    if (!data.optionChain || !data.optionChain.result || data.optionChain.result.length === 0) {
       throw new Error("No data found");
     }
 
-    const meta = result.meta;
+    const result = data.optionChain.result[0];
+    const quote = result.quote;
     
-    return { 
-      currentPrice: meta.regularMarketPrice || null,
-      currency: meta.currency || 'USD'
+    if (!quote) {
+      throw new Error("No quote data found");
+    }
+    
+    // Return the stock price data
+    return {
+      currentPrice: quote.regularMarketPrice || null,
+      currency: quote.currency || 'USD'
     };
   } catch (error) {
     console.error('Error fetching from Yahoo Finance:', error);
