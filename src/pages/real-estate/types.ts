@@ -1,4 +1,3 @@
-
 export interface RealEstateProperty {
   id: string;
   user_id: string;
@@ -42,4 +41,17 @@ export interface NeighborhoodPriceInfo {
   maxPrice: number;
   source: string;
   lastUpdated: string;
+}
+
+export interface RealEstateTransaction {
+  id: string;
+  property_id: string;
+  user_id: string;
+  date: string;
+  amount: number;
+  description: string | null;
+  type: "expense" | "income";
+  category: string;
+  created_at: string;
+  updated_at: string;
 }

@@ -64,6 +64,9 @@ export function PropertyDialog({
   ];
 
   if (isEditing && property) {
+    // Onglet pour les transactions
+    tabOptions.push({ id: "transactions", label: "Transactions" });
+    
     if (property.loan_amount && property.loan_rate && property.loan_duration_months) {
       tabOptions.push({ id: "loan", label: "Plan de remboursement" });
     }
@@ -95,7 +98,7 @@ export function PropertyDialog({
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 mb-4">
+            <TabsList className="w-full grid grid-cols-2 md:grid-cols-5 mb-4">
               {tabOptions.map((tab) => (
                 <TabsTrigger key={tab.id} value={tab.id}>
                   {tab.label}

@@ -6,6 +6,7 @@ import { LoanRepaymentSchedule } from "../LoanRepaymentSchedule";
 import { RentalIncomeSchedule } from "../RentalIncomeSchedule";
 import { PropertyForm } from "./PropertyForm";
 import { NeighborhoodPrices } from "../NeighborhoodPrices";
+import { PropertyTransactionsTab } from "./PropertyTransactionsTab";
 
 interface PropertyDialogTabsProps {
   activeTab: string;
@@ -60,6 +61,10 @@ export function PropertyDialogTabs({
           
           <TabsContent value="rental">
             <RentalIncomeSchedule property={property} />
+          </TabsContent>
+          
+          <TabsContent value="transactions">
+            <PropertyTransactionsTab property={property} />
           </TabsContent>
         </>
       )}
