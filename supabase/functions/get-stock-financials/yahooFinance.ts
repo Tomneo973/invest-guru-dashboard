@@ -3,55 +3,46 @@ import { corsHeaders } from "./utils.ts";
 
 export async function fetchFromYahooFinanceEnhanced(symbol: string) {
   try {
-    console.log('Fetching from Yahoo Finance as fallback for symbol:', symbol);
+    console.log('Fetching from Yahoo Finance for symbol:', symbol);
     
-    // Creating a more comprehensive set of headers to mimic a browser
+    // URL complète avec tous les paramètres nécessaires pour les données de chart
+    const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?symbol=${symbol}&period1=0&period2=9999999999&interval=1d&includePrePost=true&events=div%7Csplit`;
+    
+    // En-têtes améliorés pour imiter un navigateur
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Connection': 'keep-alive',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1',
-      'Cache-Control': 'max-age=0',
       'Origin': 'https://finance.yahoo.com',
-      'Referer': `https://finance.yahoo.com/quote/${symbol}`,
-      'Cookie': 'B=c8k1agtgvm1n3&b=3&s=k0; GUC=AQEBCAFle3xlbkIhLQTn; A1=d=AQABBHXMcWUCENzjOQXc2U_UyBxdQAfdvqwFEgEBCAFoe2VuZckib0IA_eMBAAcIdc5xZQ&S=AQAAAmidfKPQJ44hPnWgqHy4Owk; A3=d=AQABBHXMcWUCENzjOQXc2U_UyBxdQAfdvqwFEgEBCAFoe2VuZckib0IA_eMBAAcIdc5xZQ&S=AQAAAmidfKPQJ44hPnWgqHy4Owk'
+      'Referer': `https://finance.yahoo.com/quote/${symbol}`
     };
 
-    // First get the quote data
-    const quoteResponse = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`,
-      { headers }
-    );
+    // Récupération des données de base (chart)
+    const chartResponse = await fetch(chartUrl, { headers });
 
-    if (!quoteResponse.ok) {
-      throw new Error(`Yahoo Finance API error: ${quoteResponse.status}`);
+    if (!chartResponse.ok) {
+      throw new Error(`Yahoo Finance API error: ${chartResponse.status}`);
     }
 
-    const quoteData = await quoteResponse.json();
+    const chartData = await chartResponse.json();
     
-    if (quoteData.chart.error) {
-      throw new Error(quoteData.chart.error.description);
+    if (chartData.chart.error) {
+      throw new Error(chartData.chart.error.description);
     }
 
-    const quote = quoteData.chart.result?.[0];
-    if (!quote || !quote.meta?.regularMarketPrice) {
-      throw new Error("No data found");
+    const result = chartData.chart.result?.[0];
+    if (!result || !result.meta) {
+      throw new Error("No chart data found");
     }
-
-    // Récupérer les données financières détaillées
-    const summaryResponse = await fetch(
-      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics,assetProfile,price,financialData,incomeStatementHistory,cashflowStatementHistory`,
-      { headers }
-    );
+    
+    // URL pour les données détaillées
+    const detailUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics,assetProfile,price,financialData,incomeStatementHistory,cashflowStatementHistory`;
+    
+    // Récupération des données détaillées
+    const summaryResponse = await fetch(detailUrl, { headers });
 
     if (!summaryResponse.ok) {
-      throw new Error(`Yahoo Finance API error: ${summaryResponse.status}`);
+      throw new Error(`Yahoo Finance summary API error: ${summaryResponse.status}`);
     }
 
     const summaryData = await summaryResponse.json();
@@ -61,6 +52,7 @@ export async function fetchFromYahooFinanceEnhanced(symbol: string) {
       throw new Error("No summary data found");
     }
 
+    // Extraction des données de différentes sections
     const summaryDetail = summary.summaryDetail || {};
     const keyStats = summary.defaultKeyStatistics || {};
     const profile = summary.assetProfile || {};
@@ -69,20 +61,20 @@ export async function fetchFromYahooFinanceEnhanced(symbol: string) {
     const incomeStatement = summary.incomeStatementHistory?.incomeStatementHistory?.[0] || {};
     const cashflowStatement = summary.cashflowStatementHistory?.cashflowStatements?.[0] || {};
 
-    // Extract financial data for scoring criteria
+    // Extraction des métriques financières pour les critères de notation
     const grossMargin = financialData.grossMargins?.raw || 0;
     const revenueGrowth = financialData.revenueGrowth?.raw || 0;
     const interestCoverage = financialData.interestCoverage?.raw || 0;
     const debtToEquity = financialData.debtToEquity?.raw || 0;
     const operatingCashflow = cashflowStatement.totalCashFromOperatingActivities?.raw || 0;
-    const totalRevenue = incomeStatement.totalRevenue?.raw || 1; // To avoid division by zero
+    const totalRevenue = incomeStatement.totalRevenue?.raw || 1; // Pour éviter division par zéro
     const operatingCashflowToSales = totalRevenue > 0 ? operatingCashflow / totalRevenue : 0;
 
     return {
       symbol: symbol,
       name: price.shortName || price.longName || symbol,
-      currentPrice: quote.meta.regularMarketPrice,
-      currency: quote.meta.currency || 'USD',
+      currentPrice: result.meta.regularMarketPrice || 0,
+      currency: result.meta.currency || 'USD',
       eps: keyStats.trailingEps?.raw || 0,
       peRatio: summaryDetail.trailingPE?.raw || 0,
       forwardPE: summaryDetail.forwardPE?.raw || 0,
@@ -97,7 +89,7 @@ export async function fetchFromYahooFinanceEnhanced(symbol: string) {
       targetMeanPrice: price.targetMeanPrice?.raw || null,
       recommendationMean: price.recommendationMean?.raw || null,
       recommendation: price.recommendationKey || null,
-      // New financial data
+      // Nouvelles données financières
       grossMargin: grossMargin,
       revenueGrowth: revenueGrowth,
       interestCoverage: interestCoverage,
