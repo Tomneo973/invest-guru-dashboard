@@ -28,7 +28,7 @@ const getLastBusinessDay = () => {
 export function usePortfolioHistory() {
   const { toast } = useToast();
   const lastBusinessDay = getLastBusinessDay();
-
+  
   const {
     data: historyData,
     isLoading,
@@ -126,45 +126,63 @@ export function usePortfolioHistory() {
 
   const updateHistoricalData = async () => {
     try {
+      // Afficher une notification de début de mise à jour
+      toast({
+        title: "Mise à jour en cours",
+        description: "Récupération des données historiques...",
+      });
+      
       console.log("Starting update of historical data...");
       
       // Mettre à jour les prix historiques
-      const { error: updateError } = await supabase.functions.invoke(
+      const updatePricesResponse = await supabase.functions.invoke(
         "update-historical-prices"
       );
-      if (updateError) {
-        console.error("Error updating historical prices:", updateError);
-        throw updateError;
+      
+      console.log("Update prices response:", updatePricesResponse);
+      
+      if (updatePricesResponse.error) {
+        console.error("Error updating historical prices:", updatePricesResponse.error);
+        throw new Error(`Erreur lors de la mise à jour des prix: ${updatePricesResponse.error.message}`);
       }
       console.log("Historical prices updated successfully");
 
       // Mettre à jour les valeurs quotidiennes
-      const { error: portfolioError } = await supabase.rpc(
+      const portfolioValuesResponse = await supabase.rpc(
         "update_daily_portfolio_values"
       );
-      if (portfolioError) {
-        console.error("Error updating daily portfolio values:", portfolioError);
-        throw portfolioError;
+      
+      console.log("Update portfolio values response:", portfolioValuesResponse);
+      
+      if (portfolioValuesResponse.error) {
+        console.error("Error updating daily portfolio values:", portfolioValuesResponse.error);
+        throw new Error(`Erreur lors de la mise à jour des valeurs du portfolio: ${portfolioValuesResponse.error.message}`);
       }
       console.log("Daily portfolio values updated successfully");
 
       // Mettre à jour les montants investis
-      const { error: investedError } = await supabase.rpc(
+      const investedResponse = await supabase.rpc(
         "update_daily_invested"
       );
-      if (investedError) {
-        console.error("Error updating daily invested amounts:", investedError);
-        throw investedError;
+      
+      console.log("Update invested response:", investedResponse);
+      
+      if (investedResponse.error) {
+        console.error("Error updating daily invested amounts:", investedResponse.error);
+        throw new Error(`Erreur lors de la mise à jour des montants investis: ${investedResponse.error.message}`);
       }
       console.log("Daily invested amounts updated successfully");
 
       // Mettre à jour les dividendes
-      const { error: dividendsError } = await supabase.rpc(
+      const dividendsResponse = await supabase.rpc(
         "update_daily_dividends"
       );
-      if (dividendsError) {
-        console.error("Error updating daily dividends:", dividendsError);
-        throw dividendsError;
+      
+      console.log("Update dividends response:", dividendsResponse);
+      
+      if (dividendsResponse.error) {
+        console.error("Error updating daily dividends:", dividendsResponse.error);
+        throw new Error(`Erreur lors de la mise à jour des dividendes: ${dividendsResponse.error.message}`);
       }
       console.log("Daily dividends updated successfully");
 
@@ -180,10 +198,9 @@ export function usePortfolioHistory() {
       toast({
         title: "Erreur",
         description:
-          "Une erreur est survenue lors de la mise à jour des données historiques.",
+          `Une erreur est survenue: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
         variant: "destructive",
       });
-      throw error;
     }
   };
 

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -76,7 +76,7 @@ const filterAnomalies = (data: any[]) => {
 export function PortfolioValueChart() {
   const [selectedRange, setSelectedRange] = React.useState<TimeRange>("1m");
   const { historyData, isLoading, updateHistoricalData } = usePortfolioHistory();
-  const [isUpdating, setIsUpdating] = React.useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const startDate = useTimeRangeFilter(selectedRange);
   const { toast } = useToast();
 
@@ -122,18 +122,10 @@ export function PortfolioValueChart() {
     setIsUpdating(true);
     try {
       await updateHistoricalData();
-      toast({
-        title: "Mise à jour réussie",
-        description: "Les données historiques ont été mises à jour avec succès.",
-      });
+      // Le toast est maintenant géré dans updateHistoricalData
     } catch (error) {
       console.error("Error updating historical data:", error);
-      toast({
-        title: "Erreur",
-        description:
-          "Une erreur est survenue lors de la mise à jour des données historiques.",
-        variant: "destructive",
-      });
+      // Le toast d'erreur est maintenant géré dans updateHistoricalData
     } finally {
       setIsUpdating(false);
     }
@@ -177,7 +169,7 @@ export function PortfolioValueChart() {
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
-            {isUpdating ? "Mise à jour des données..." : "Aucune donnée disponible"}
+            {isUpdating ? "Mise à jour des données..." : "Aucune donnée disponible. Cliquez sur 'Mettre à jour' pour récupérer vos données."}
           </div>
         </CardContent>
       </Card>
@@ -200,7 +192,7 @@ export function PortfolioValueChart() {
             disabled={isUpdating}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? "animate-spin" : ""}`} />
-            Mettre à jour
+            {isUpdating ? "Mise à jour..." : "Mettre à jour"}
           </Button>
         </div>
       </CardHeader>
