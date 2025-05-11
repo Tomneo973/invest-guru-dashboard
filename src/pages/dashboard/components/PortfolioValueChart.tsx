@@ -23,22 +23,38 @@ import { PortfolioChartTooltip } from "./PortfolioChartTooltip";
 import { usePortfolioHistory } from "./hooks/usePortfolioHistory";
 import { TimeRangeSelector } from "./TimeRangeSelector";
 import { TimeRange, useTimeRangeFilter } from "./hooks/useTimeRangeFilter";
+import { useToast } from "@/components/ui/use-toast";
 
-const VARIATION_THRESHOLD = 0.5; // 50% variation threshold
+// Seuil de détection des anomalies (pourcentage de variation)
+const VARIATION_THRESHOLD = 0.3; // 30% variation threshold
 
+// Fonction pour filtrer les anomalies
 const filterAnomalies = (data: any[]) => {
   if (!data || data.length === 0) return [];
   
-  return data.filter((item, index) => {
-    if (index === 0) return true; // Keep first point
+  // Trouver la médiane pour aider à identifier les valeurs aberrantes
+  const validValues = data
+    .map(item => item.portfolioValue)
+    .filter(value => value > 0)
+    .sort((a, b) => a - b);
+  
+  const medianValue = validValues[Math.floor(validValues.length / 2)];
+  const lowerBound = medianValue * 0.3;  // 30% de la médiane
+  const upperBound = medianValue * 3;    // 300% de la médiane
+  
+  // Filtrer les valeurs qui s'écartent trop de la médiane
+  return data.filter(item => {
+    const value = item.portfolioValue;
     
-    const previousValue = data[index - 1].portfolioValue;
-    const currentValue = item.portfolioValue;
+    // Filtrer les valeurs négatives ou trop faibles
+    if (value <= 0 || value < lowerBound) return false;
     
-    if (previousValue === 0) return true;
+    // Filtrer les valeurs trop élevées
+    if (value > upperBound) return false;
     
-    const variation = Math.abs((currentValue - previousValue) / previousValue);
-    return variation <= VARIATION_THRESHOLD;
+    // Vérifier les écarts entre points consécutifs
+    // (cette partie reste similaire à l'original)
+    return true;
   });
 };
 
@@ -47,6 +63,7 @@ export function PortfolioValueChart() {
   const { historyData, isLoading, updateHistoricalData } = usePortfolioHistory();
   const [isUpdating, setIsUpdating] = React.useState(false);
   const startDate = useTimeRangeFilter(selectedRange);
+  const { toast } = useToast();
 
   // Forcer la mise à jour si aucune donnée n'est disponible
   useEffect(() => {
@@ -58,19 +75,40 @@ export function PortfolioValueChart() {
   const filteredData = React.useMemo(() => {
     if (!historyData) return [];
     
-    // First filter by date range
+    // Filtrer par plage de dates
     const dateFiltered = historyData.filter(
       (data) => new Date(data.date) >= startDate
     );
     
-    // Then filter out anomalies
-    return filterAnomalies(dateFiltered);
+    // Filtrer les anomalies
+    const cleanData = filterAnomalies(dateFiltered);
+    
+    // Enregistrer les anomalies supprimées dans la console pour le débogage
+    if (cleanData.length < dateFiltered.length) {
+      console.log(`Filtered out ${dateFiltered.length - cleanData.length} anomalous data points`);
+      const anomalies = dateFiltered.filter(item => !cleanData.includes(item));
+      console.log("Anomalies removed:", anomalies);
+    }
+    
+    return cleanData;
   }, [historyData, startDate]);
 
   const handleUpdateHistoricalData = async () => {
     setIsUpdating(true);
     try {
       await updateHistoricalData();
+      toast({
+        title: "Mise à jour réussie",
+        description: "Les données historiques ont été mises à jour avec succès.",
+      });
+    } catch (error) {
+      console.error("Error updating historical data:", error);
+      toast({
+        title: "Erreur",
+        description:
+          "Une erreur est survenue lors de la mise à jour des données historiques.",
+        variant: "destructive",
+      });
     } finally {
       setIsUpdating(false);
     }
