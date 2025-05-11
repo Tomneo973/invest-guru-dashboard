@@ -28,6 +28,21 @@ import { useToast } from "@/components/ui/use-toast";
 // Seuil de détection des anomalies (pourcentage de variation)
 const VARIATION_THRESHOLD = 0.3; // 30% variation threshold
 
+// Fonction pour obtenir le dernier jour ouvrable (lundi-vendredi)
+const getLastBusinessDay = () => {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
+  
+  // Si nous sommes un dimanche (0), retourner vendredi (moins 2 jours)
+  // Si nous sommes un samedi (6), retourner vendredi (moins 1 jour)
+  // Sinon, retourner aujourd'hui
+  const daysToSubtract = dayOfWeek === 0 ? 2 : dayOfWeek === 6 ? 1 : 0;
+  const lastBusinessDay = new Date(today);
+  lastBusinessDay.setDate(today.getDate() - daysToSubtract);
+  
+  return lastBusinessDay;
+};
+
 // Fonction pour filtrer les anomalies
 const filterAnomalies = (data: any[]) => {
   if (!data || data.length === 0) return [];
@@ -75,9 +90,19 @@ export function PortfolioValueChart() {
   const filteredData = React.useMemo(() => {
     if (!historyData) return [];
     
-    // Filtrer par plage de dates
+    // Obtenir la date du dernier jour ouvrable
+    const lastBusinessDay = getLastBusinessDay();
+    const lastBusinessDayString = lastBusinessDay.toISOString().split('T')[0];
+    
+    console.log("Last business day:", lastBusinessDayString);
+    console.log("Latest data point date:", historyData.length > 0 ? historyData[historyData.length - 1].date : "N/A");
+    
+    // Filtrer par plage de dates, en s'assurant d'inclure jusqu'au dernier jour ouvrable
     const dateFiltered = historyData.filter(
-      (data) => new Date(data.date) >= startDate
+      (data) => {
+        const dataDate = new Date(data.date);
+        return dataDate >= startDate && dataDate <= lastBusinessDay;
+      }
     );
     
     // Filtrer les anomalies

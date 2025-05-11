@@ -10,8 +10,24 @@ export interface PortfolioHistoryData {
   cumulativeDividends: number;
 }
 
+// Fonction utilitaire pour obtenir le dernier jour ouvrable (lundi-vendredi)
+const getLastBusinessDay = () => {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
+  
+  // Si nous sommes un dimanche (0), retourner vendredi (moins 2 jours)
+  // Si nous sommes un samedi (6), retourner vendredi (moins 1 jour)
+  // Sinon, retourner aujourd'hui
+  const daysToSubtract = dayOfWeek === 0 ? 2 : dayOfWeek === 6 ? 1 : 0;
+  const lastBusinessDay = new Date(today);
+  lastBusinessDay.setDate(today.getDate() - daysToSubtract);
+  
+  return lastBusinessDay;
+};
+
 export function usePortfolioHistory() {
   const { toast } = useToast();
+  const lastBusinessDay = getLastBusinessDay();
 
   const {
     data: historyData,
@@ -27,14 +43,17 @@ export function usePortfolioHistory() {
           supabase
             .from("portfolio_daily_values")
             .select("date, total_value")
+            .lte("date", lastBusinessDay.toISOString().split('T')[0])
             .order("date", { ascending: true }),
           supabase
             .from("portfolio_daily_invested")
             .select("date, total_invested")
+            .lte("date", lastBusinessDay.toISOString().split('T')[0])
             .order("date", { ascending: true }),
           supabase
             .from("portfolio_daily_dividends")
             .select("date, total_dividends")
+            .lte("date", lastBusinessDay.toISOString().split('T')[0])
             .order("date", { ascending: true })
         ]);
 
@@ -43,6 +62,7 @@ export function usePortfolioHistory() {
         if (dividendValues.error) throw dividendValues.error;
 
         console.log(`Fetched portfolio data: ${portfolioValues.data.length} values, ${investedValues.data.length} invested values, ${dividendValues.data.length} dividend values`);
+        console.log(`Last business day: ${lastBusinessDay.toISOString().split('T')[0]}`);
 
         // Créer un Map pour chaque type de données pour un accès rapide
         const valuesByDate = new Map(
