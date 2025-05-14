@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { HistoricalPrice } from "./types";
+import { HistoricalPrice, DbPriceData } from "./types";
 
 export async function getHistoricalPrices(symbol: string): Promise<HistoricalPrice[]> {
   try {
@@ -16,16 +16,17 @@ export async function getHistoricalPrices(symbol: string): Promise<HistoricalPri
     if (!dbError && dbData && dbData.length > 0) {
       console.log(`Found ${dbData.length} historical prices in database for ${symbol}`);
       
-      // Transform the database data to match the HistoricalPrice interface
-      const validData = dbData
-        .filter(item => 
+      // S'assurer que toutes les données sont valides et du bon type
+      // avant de les transformer
+      const validData = (dbData as Array<any>)
+        .filter((item): item is DbPriceData => (
           item !== null && 
           typeof item === 'object' && 
           'date' in item && 
           'price' in item && 
           typeof item.date === 'string' && 
           typeof item.price === 'number'
-        )
+        ))
         .map(item => ({
           date: item.date,
           open: item.price,   // We only have closing price, so use it for open too
