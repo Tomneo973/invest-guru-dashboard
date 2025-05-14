@@ -1,4 +1,5 @@
 
+
 import { supabase } from "@/integrations/supabase/client";
 import { HistoricalPrice } from "./types";
 
@@ -15,15 +16,21 @@ export async function getHistoricalPrices(symbol: string): Promise<HistoricalPri
       
     if (!dbError && dbData && dbData.length > 0) {
       console.log(`Found ${dbData.length} historical prices in database for ${symbol}`);
+      
+      // Type safety: ensure we're working with valid data objects
+      const validData = dbData.filter(item => 
+        typeof item === 'object' && item !== null && 'date' in item && 'price' in item
+      );
+      
       // Properly transform the database data to match the HistoricalPrice interface
-      return dbData.map(item => ({
+      return validData.map(item => ({
         date: item.date,
         open: item.price,   // We only have closing price, so use it for open too
         high: item.price,   // We only have closing price, so use it for high too
         low: item.price,    // We only have closing price, so use it for low too
         close: item.price,
         volume: 0           // Default volume since we don't have this data
-      })) as HistoricalPrice[];
+      }));
     }
     
     // If database fetch fails or returns no data, use the Supabase Cloud function
@@ -55,3 +62,4 @@ export async function getHistoricalPrices(symbol: string): Promise<HistoricalPri
     return [];
   }
 }
+
