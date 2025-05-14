@@ -44,7 +44,7 @@ export interface HistoricalPrice {
   low: number;
   close: number;
   volume: number;
-  // Additional fields that might be present in our database
+  // Additional fields that might be present
   price?: number;
   currency?: string | null;
 }
