@@ -1,3 +1,4 @@
+
 export interface StockFinancialData {
   symbol: string;
   name: string;
@@ -45,7 +46,7 @@ export interface HistoricalPrice {
   volume: number;
   // Additional fields that might be present in our database
   price?: number;
-  currency?: string;
+  currency?: string | null;
 }
 
 export interface ScoreDetails {

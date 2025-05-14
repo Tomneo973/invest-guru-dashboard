@@ -16,18 +16,27 @@ export async function getHistoricalPrices(symbol: string): Promise<HistoricalPri
     if (!dbError && dbData && dbData.length > 0) {
       console.log(`Found ${dbData.length} historical prices in database for ${symbol}`);
       
-      // Type safety: ensure we're working with valid data objects
-      // We need to be more specific about the dbData type
-      type StockPriceData = { date: string; price: number; currency?: string };
+      // Define our expected data type
+      type StockPriceData = { 
+        date: string; 
+        price: number; 
+        currency?: string | null;
+      };
       
-      const validData = dbData.filter((item): item is StockPriceData => 
-        typeof item === 'object' && 
-        item !== null && 
-        'date' in item && 
-        'price' in item && 
-        typeof item.date === 'string' && 
-        typeof item.price === 'number'
-      );
+      // Type guard function to check if item is a valid StockPriceData
+      function isValidStockPriceData(item: any): item is StockPriceData {
+        return (
+          typeof item === 'object' && 
+          item !== null && 
+          'date' in item && 
+          'price' in item && 
+          typeof item.date === 'string' && 
+          typeof item.price === 'number'
+        );
+      }
+      
+      // Filter to get only valid data items
+      const validData = dbData.filter(isValidStockPriceData);
       
       // Properly transform the database data to match the HistoricalPrice interface
       return validData.map(item => ({
