@@ -6,10 +6,7 @@ import {
   fetchPortfolioValues, 
   fetchInvestedValues, 
   fetchDividendValues,
-  updateHistoricalPrices,
-  updateDailyPortfolioValues,
-  updateDailyInvested,
-  updateDailyDividends,
+  updateAllPortfolioData,
   type PortfolioHistoryData
 } from "./api/portfolioDataApi";
 import { 
@@ -77,21 +74,10 @@ export function usePortfolioHistory() {
       
       console.log("Starting update of historical data...");
       
-      // Update historical prices
-      await updateHistoricalPrices();
-      console.log("Historical prices updated successfully");
-
-      // Update daily portfolio values
-      await updateDailyPortfolioValues();
-      console.log("Daily portfolio values updated successfully");
-
-      // Update invested amounts
-      await updateDailyInvested();
-      console.log("Daily invested amounts updated successfully");
-
-      // Update dividends
-      await updateDailyDividends();
-      console.log("Daily dividends updated successfully");
+      // Update all portfolio data in the correct order
+      await updateAllPortfolioData();
+      
+      console.log("All portfolio data updated successfully");
 
       // Refetch the data
       await refetch();
@@ -99,7 +85,7 @@ export function usePortfolioHistory() {
 
       toast({
         title: "Mise à jour réussie",
-        description: "Les données historiques ont été mises à jour avec succès.",
+        description: "Les données historiques ont été mises à jour avec succès jusqu'au dernier jour ouvré.",
       });
     } catch (error) {
       console.error("Error updating historical data:", error);

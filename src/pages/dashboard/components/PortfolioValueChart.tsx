@@ -4,7 +4,12 @@ import { usePortfolioHistory } from "./hooks/usePortfolioHistory";
 import { TimeRange, useTimeRangeFilter } from "./hooks/useTimeRangeFilter";
 import { ChartContainer } from "./chart/ChartContainer";
 import { PortfolioChart } from "./chart/PortfolioChart";
-import { getLastBusinessDay, filterAnomalies, checkDataCompleteness } from "./utils/dataUtils";
+import { 
+  getLastBusinessDay, 
+  filterAnomalies, 
+  checkDataCompleteness,
+  getLatestDataDate 
+} from "./utils/dataUtils";
 
 export function PortfolioValueChart() {
   const [selectedRange, setSelectedRange] = React.useState<TimeRange>("1m");
@@ -12,10 +17,21 @@ export function PortfolioValueChart() {
   const [isUpdating, setIsUpdating] = useState(false);
   const startDate = useTimeRangeFilter(selectedRange);
 
-  // Forcer la mise à jour si aucune donnée n'est disponible
+  // Forcer la mise à jour si aucune donnée n'est disponible ou si les données ne sont pas à jour
   useEffect(() => {
     if (!isLoading && (!historyData || historyData.length === 0)) {
       handleUpdateHistoricalData();
+    } else if (!isLoading && historyData && historyData.length > 0) {
+      // Vérifier si les données sont à jour
+      const missingDays = checkDataCompleteness(historyData);
+      if (missingDays.length > 0) {
+        console.log("Données non à jour, dernière mise à jour à", getLatestDataDate(historyData));
+        console.log("Jours manquants:", missingDays);
+        // Mise à jour automatique uniquement si plus de 1 jour de retard
+        if (missingDays.length > 1) {
+          handleUpdateHistoricalData();
+        }
+      }
     }
   }, [isLoading, historyData]);
 
@@ -52,6 +68,8 @@ export function PortfolioValueChart() {
       const anomalies = dateFiltered.filter(item => !cleanData.includes(item));
       console.log("Anomalies removed:", anomalies);
     }
+    
+    console.log(`Filtered data contains ${cleanData.length} points from ${cleanData[0]?.date || 'N/A'} to ${cleanData[cleanData.length-1]?.date || 'N/A'}`);
     
     return cleanData;
   }, [historyData, startDate]);

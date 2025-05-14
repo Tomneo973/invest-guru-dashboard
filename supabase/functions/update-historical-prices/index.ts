@@ -57,6 +57,18 @@ serve(async (req) => {
     for (const symbol of symbols) {
       try {
         console.log(`Fetching data for ${symbol}...`);
+        
+        // Vérifier la dernière date disponible pour ce symbole dans notre base
+        const { data: latestPrice, error: latestPriceError } = await supabase
+          .from('stock_prices')
+          .select('date')
+          .eq('symbol', symbol)
+          .order('date', { ascending: false })
+          .limit(1);
+          
+        console.log(`Latest price date for ${symbol}:`, latestPrice && latestPrice.length > 0 ? latestPrice[0].date : 'none');
+        
+        // Obtenir les données depuis Yahoo Finance
         const response = await fetch(
           `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5y`,
           {
@@ -102,6 +114,7 @@ serve(async (req) => {
 
         // Insérer les prix par lots
         if (pricesToInsert.length > 0) {
+          // Vérifions si nous avons déjà les dernières données (pour éviter les doublons)
           const { error } = await supabase
             .from('stock_prices')
             .upsert(pricesToInsert, { 

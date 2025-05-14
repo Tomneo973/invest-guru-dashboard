@@ -54,6 +54,23 @@ export function filterAnomalies(data: PortfolioHistoryData[]): PortfolioHistoryD
 }
 
 /**
+ * Génère une liste de jours ouvrés entre deux dates
+ */
+export function generateBusinessDays(startDate: Date, endDate: Date): Date[] {
+  const businessDays: Date[] = [];
+  const currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    if (!isWeekend(currentDate)) {
+      businessDays.push(new Date(currentDate));
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return businessDays;
+}
+
+/**
  * Vérifie que les données vont bien jusqu'au dernier jour ouvré
  * et retourne la liste des jours manquants si nécessaire
  */
@@ -76,8 +93,35 @@ export function checkDataCompleteness(data: PortfolioHistoryData[]): string[] {
   
   // Vérifier si les données sont à jour
   if (lastDataDate !== lastBusinessDayString) {
-    missingDays.push(lastBusinessDayString);
+    // Trouver tous les jours ouvrés manquants
+    if (lastDataDate) {
+      const lastDataDateObj = new Date(lastDataDate);
+      lastDataDateObj.setDate(lastDataDateObj.getDate() + 1);
+      
+      const businessDays = generateBusinessDays(lastDataDateObj, lastBusinessDay);
+      
+      businessDays.forEach(day => {
+        missingDays.push(day.toISOString().split('T')[0]);
+      });
+    } else {
+      missingDays.push(lastBusinessDayString);
+    }
   }
   
+  console.log("Jours ouvrés manquants:", missingDays);
   return missingDays;
+}
+
+/**
+ * Obtenir la date de la dernière mise à jour des données
+ */
+export function getLatestDataDate(data: PortfolioHistoryData[]): string | null {
+  if (!data || data.length === 0) return null;
+  
+  // Trier les données par date décroissante
+  const sortedData = [...data].sort((a, b) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
+  
+  return sortedData[0].date;
 }
