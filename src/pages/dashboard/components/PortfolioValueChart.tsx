@@ -2,10 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { usePortfolioHistory } from "./hooks/usePortfolioHistory";
 import { TimeRange, useTimeRangeFilter } from "./hooks/useTimeRangeFilter";
-import { useToast } from "@/components/ui/use-toast";
 import { ChartContainer } from "./chart/ChartContainer";
 import { PortfolioChart } from "./chart/PortfolioChart";
-import { getLastBusinessDay, filterAnomalies } from "./utils/dataUtils";
+import { getLastBusinessDay, filterAnomalies, checkDataCompleteness } from "./utils/dataUtils";
 
 export function PortfolioValueChart() {
   const [selectedRange, setSelectedRange] = React.useState<TimeRange>("1m");
@@ -29,6 +28,12 @@ export function PortfolioValueChart() {
     
     console.log("Last business day:", lastBusinessDayString);
     console.log("Latest data point date:", historyData.length > 0 ? historyData[historyData.length - 1].date : "N/A");
+    
+    // Vérifier si les données vont jusqu'au dernier jour ouvré
+    const missingDays = checkDataCompleteness(historyData);
+    if (missingDays.length > 0) {
+      console.warn(`Data is missing for these business days: ${missingDays.join(", ")}`);
+    }
     
     // Filtrer par plage de dates, en s'assurant d'inclure jusqu'au dernier jour ouvrable
     const dateFiltered = historyData.filter(

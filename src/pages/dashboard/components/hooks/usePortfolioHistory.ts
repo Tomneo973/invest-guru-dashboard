@@ -32,6 +32,7 @@ export function usePortfolioHistory() {
     queryFn: async () => {
       try {
         console.log("Fetching portfolio history data...");
+        console.log(`Last business day: ${lastBusinessDay.toISOString().split('T')[0]}`);
         
         // Fetch data from all three tables in parallel
         const [portfolioValues, investedValues, dividendValues] = await Promise.all([
@@ -41,7 +42,6 @@ export function usePortfolioHistory() {
         ]);
 
         console.log(`Fetched portfolio data: ${portfolioValues.length} values, ${investedValues.length} invested values, ${dividendValues.length} dividend values`);
-        console.log(`Last business day: ${lastBusinessDay.toISOString().split('T')[0]}`);
 
         // Process the data
         const chartData = processPortfolioData(
@@ -51,6 +51,10 @@ export function usePortfolioHistory() {
         );
 
         console.log(`Generated ${chartData.length} chart data points`);
+        if (chartData.length > 0) {
+          const lastDataPoint = chartData[chartData.length - 1];
+          console.log(`Last data point: date = ${lastDataPoint.date}, value = ${lastDataPoint.portfolioValue}`);
+        }
         
         // Check for anomalies
         checkForAnomalies(chartData);

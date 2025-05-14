@@ -48,6 +48,11 @@ serve(async (req) => {
     const failedSymbols = [];
     let totalUpdatedPrices = 0;
 
+    // Obtenir la date du jour
+    const currentDate = new Date();
+    const currentDateString = currentDate.toISOString().split('T')[0];
+    console.log('Current date:', currentDateString);
+
     // Pour chaque symbole, récupérer les données historiques
     for (const symbol of symbols) {
       try {
@@ -80,6 +85,12 @@ serve(async (req) => {
         const { timestamp, indicators } = data.chart.result[0];
         const prices = indicators.quote[0].close;
         const currency = data.chart.result[0].meta.currency || 'USD';
+
+        // Journaliser les dernières données pour le débogage
+        const lastTimestamp = timestamp[timestamp.length - 1];
+        const lastDate = new Date(lastTimestamp * 1000).toISOString().split('T')[0];
+        const lastPrice = prices[prices.length - 1];
+        console.log(`Last price for ${symbol}: ${lastPrice} on ${lastDate}`);
 
         // Préparer les prix pour l'insertion
         const pricesToInsert = timestamp.map((ts: number, index: number) => ({
@@ -118,6 +129,7 @@ serve(async (req) => {
 
     // Mettre à jour les fonctions de base de données pour calculer les valeurs du portfolio
     try {
+      console.log('Updating database functions...');
       const updateFunctions = [
         supabase.rpc('update_daily_portfolio_values'),
         supabase.rpc('update_daily_invested'),
@@ -125,6 +137,17 @@ serve(async (req) => {
       ];
       
       const results = await Promise.allSettled(updateFunctions);
+      
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const functionName = ['update_daily_portfolio_values', 'update_daily_invested', 'update_daily_dividends'][i];
+        
+        if (result.status === 'fulfilled') {
+          console.log(`Function ${functionName} executed successfully`);
+        } else {
+          console.error(`Function ${functionName} failed:`, result.reason);
+        }
+      }
       
       const errors = results
         .filter(result => result.status === 'rejected')
@@ -139,13 +162,18 @@ serve(async (req) => {
       console.error('Error executing database functions:', error);
     }
 
+    // Vérifier que les données sont à jour jusqu'au dernier jour ouvré
+    const lastBusinessDay = await getLastBusinessDay(supabase);
+    console.log('Last business day:', lastBusinessDay);
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Historical prices updated successfully', 
         updated: totalUpdatedPrices,
         updatedSymbols,
-        failedSymbols
+        failedSymbols,
+        lastBusinessDay
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -163,3 +191,35 @@ serve(async (req) => {
     );
   }
 });
+
+// Fonction helper pour obtenir le dernier jour ouvré
+async function getLastBusinessDay(supabase) {
+  const today = new Date();
+  let date = new Date(today);
+  
+  // Vérifier si aujourd'hui est un jour férié via la fonction SQL
+  try {
+    const { data, error } = await supabase.rpc('is_market_holiday', { 
+      check_date: today.toISOString().split('T')[0]
+    });
+    
+    if (error) {
+      console.error('Error checking if today is a holiday:', error);
+    } else if (data) {
+      // C'est un jour férié, on recule d'un jour
+      date.setDate(date.getDate() - 1);
+    }
+  } catch (error) {
+    console.error('Error checking market holiday:', error);
+  }
+  
+  // Si c'est un weekend, reculer jusqu'au dernier jour ouvré
+  const day = date.getDay();
+  if (day === 0) { // Dimanche
+    date.setDate(date.getDate() - 2);
+  } else if (day === 6) { // Samedi
+    date.setDate(date.getDate() - 1);
+  }
+  
+  return date.toISOString().split('T')[0];
+}
