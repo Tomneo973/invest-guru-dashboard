@@ -17,11 +17,11 @@ export async function getHistoricalPrices(symbol: string): Promise<HistoricalPri
       console.log(`Found ${dbData.length} historical prices in database for ${symbol}`);
       
       // Define our expected data type
-      type StockPriceData = { 
+      interface StockPriceData { 
         date: string; 
         price: number; 
         currency?: string | null;
-      };
+      }
       
       // Type guard function to check if item is a valid StockPriceData
       function isValidStockPriceData(item: any): item is StockPriceData {
