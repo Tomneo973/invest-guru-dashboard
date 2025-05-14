@@ -7,6 +7,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Fonction pour obtenir le "crumb" nécessaire à l'authentification Yahoo Finance
+async function getCrumb() {
+  try {
+    const response = await fetch("https://finance.yahoo.com", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36"
+      }
+    });
+    
+    if (!response.ok) {
+      console.error("Error fetching Yahoo Finance homepage:", response.status);
+      return null;
+    }
+    
+    const text = await response.text();
+    const patternStr = 'window\\.YAHOO\\.context = ({.*?});';
+    const pattern = new RegExp(patternStr, 's');
+    const match = text.match(pattern);
+    
+    if (match && match[1]) {
+      try {
+        const jsDict = JSON.parse(match[1]);
+        return jsDict.crumb;
+      } catch (e) {
+        console.error("Error parsing YAHOO context:", e);
+        return null;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Error in getCrumb:", error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -53,6 +88,10 @@ serve(async (req) => {
     const currentDateString = currentDate.toISOString().split('T')[0];
     console.log('Current date:', currentDateString);
 
+    // Obtenir le crumb pour l'authentification Yahoo Finance
+    const crumb = await getCrumb();
+    console.log(`Got crumb: ${crumb ? 'yes' : 'no'}`);
+
     // Pour chaque symbole, récupérer les données historiques
     for (const symbol of symbols) {
       try {
@@ -68,18 +107,25 @@ serve(async (req) => {
           
         console.log(`Latest price date for ${symbol}:`, latestPrice && latestPrice.length > 0 ? latestPrice[0].date : 'none');
         
+        // Construire l'URL avec le crumb si disponible
+        let url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5y`;
+        if (crumb) {
+          url += `&crumb=${crumb}`;
+        }
+        
+        // Construire les en-têtes avec l'agent utilisateur et les cookies
+        const headers = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cookie': `B=c8k1agtgvm1n3&b=3&s=k0; crumb=${crumb || ""}`,
+          'Origin': 'https://finance.yahoo.com',
+          'Referer': `https://finance.yahoo.com/quote/${symbol}`,
+        };
+
         // Obtenir les données depuis Yahoo Finance
-        const response = await fetch(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5y`,
-          {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.9',
-              'Accept-Encoding': 'gzip, deflate, br',
-            },
-          }
-        );
+        const response = await fetch(url, { headers });
 
         if (!response.ok) {
           console.error(`Error fetching data for ${symbol}:`, response.status);
@@ -144,6 +190,7 @@ serve(async (req) => {
     try {
       console.log('Updating database functions...');
       const updateFunctions = [
+        supabase.rpc('update_portfolio_daily_holdings'),
         supabase.rpc('update_daily_portfolio_values'),
         supabase.rpc('update_daily_invested'),
         supabase.rpc('update_daily_dividends')
@@ -153,7 +200,12 @@ serve(async (req) => {
       
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        const functionName = ['update_daily_portfolio_values', 'update_daily_invested', 'update_daily_dividends'][i];
+        const functionName = [
+          'update_portfolio_daily_holdings', 
+          'update_daily_portfolio_values', 
+          'update_daily_invested', 
+          'update_daily_dividends'
+        ][i];
         
         if (result.status === 'fulfilled') {
           console.log(`Function ${functionName} executed successfully`);

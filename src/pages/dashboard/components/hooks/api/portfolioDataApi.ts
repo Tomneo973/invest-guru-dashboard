@@ -129,96 +129,146 @@ export const fetchHistoricalPrices = async (symbols: string[], startDate: string
  * Updates historical prices data
  */
 export const updateHistoricalPrices = async () => {
-  console.log("Updating historical prices...");
-  const response = await supabase.functions.invoke("update-historical-prices");
-  
-  if (response.error) {
-    console.error("Error updating historical prices:", response.error);
-    throw new Error(`Erreur lors de la mise à jour des prix: ${response.error.message}`);
+  try {
+    console.log("Updating historical prices...");
+    const response = await supabase.functions.invoke("update-historical-prices");
+    
+    if (response.error) {
+      console.error("Error updating historical prices:", response.error);
+      throw new Error(`Erreur lors de la mise à jour des prix: ${response.error.message}`);
+    }
+    
+    console.log("Historical prices update response:", response.data);
+    
+    // Vérifier si des symboles ont échoué
+    if (response.data.failedSymbols && response.data.failedSymbols.length > 0) {
+      console.warn(`Failed to update prices for ${response.data.failedSymbols.length} symbols:`, 
+        response.data.failedSymbols);
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error in updateHistoricalPrices:", error);
+    throw error;
   }
-  
-  console.log("Historical prices update response:", response.data);
-  return response.data;
-};
-
-/**
- * Updates daily portfolio values
- */
-export const updateDailyPortfolioValues = async () => {
-  console.log("Updating daily portfolio values...");
-  const response = await supabase.rpc("update_daily_portfolio_values");
-  
-  if (response.error) {
-    console.error("Error updating daily portfolio values:", response.error);
-    throw new Error(`Erreur lors de la mise à jour des valeurs du portfolio: ${response.error.message}`);
-  }
-  
-  console.log("Daily portfolio values update successful");
-  return response.data;
-};
-
-/**
- * Updates daily invested amounts
- */
-export const updateDailyInvested = async () => {
-  console.log("Updating daily invested amounts...");
-  const response = await supabase.rpc("update_daily_invested");
-  
-  if (response.error) {
-    console.error("Error updating daily invested amounts:", response.error);
-    throw new Error(`Erreur lors de la mise à jour des montants investis: ${response.error.message}`);
-  }
-  
-  console.log("Daily invested amounts update successful");
-  return response.data;
-};
-
-/**
- * Updates daily dividends
- */
-export const updateDailyDividends = async () => {
-  console.log("Updating daily dividends...");
-  const response = await supabase.rpc("update_daily_dividends");
-  
-  if (response.error) {
-    console.error("Error updating daily dividends:", response.error);
-    throw new Error(`Erreur lors de la mise à jour des dividendes: ${response.error.message}`);
-  }
-  
-  console.log("Daily dividends update successful");
-  return response.data;
 };
 
 /**
  * Updates portfolio daily holdings
  */
 export const updatePortfolioHoldings = async () => {
-  console.log("Updating portfolio daily holdings...");
-  const response = await supabase.rpc("update_portfolio_daily_holdings");
-  
-  if (response.error) {
-    console.error("Error updating portfolio daily holdings:", response.error);
-    throw new Error(`Erreur lors de la mise à jour des positions du portfolio: ${response.error.message}`);
+  try {
+    console.log("Updating portfolio daily holdings...");
+    const response = await supabase.rpc("update_portfolio_daily_holdings");
+    
+    if (response.error) {
+      console.error("Error updating portfolio daily holdings:", response.error);
+      throw new Error(`Erreur lors de la mise à jour des positions du portfolio: ${response.error.message}`);
+    }
+    
+    console.log("Portfolio daily holdings update successful");
+    return response.data;
+  } catch (error) {
+    console.error("Error in updatePortfolioHoldings:", error);
+    throw error;
   }
-  
-  console.log("Portfolio daily holdings update successful");
-  return response.data;
+};
+
+/**
+ * Updates daily portfolio values
+ */
+export const updateDailyPortfolioValues = async () => {
+  try {
+    console.log("Updating daily portfolio values...");
+    const response = await supabase.rpc("update_daily_portfolio_values");
+    
+    if (response.error) {
+      console.error("Error updating daily portfolio values:", response.error);
+      throw new Error(`Erreur lors de la mise à jour des valeurs du portfolio: ${response.error.message}`);
+    }
+    
+    console.log("Daily portfolio values update successful");
+    return response.data;
+  } catch (error) {
+    console.error("Error in updateDailyPortfolioValues:", error);
+    throw error;
+  }
+};
+
+/**
+ * Updates daily invested amounts
+ */
+export const updateDailyInvested = async () => {
+  try {
+    console.log("Updating daily invested amounts...");
+    const response = await supabase.rpc("update_daily_invested");
+    
+    if (response.error) {
+      console.error("Error updating daily invested amounts:", response.error);
+      throw new Error(`Erreur lors de la mise à jour des montants investis: ${response.error.message}`);
+    }
+    
+    console.log("Daily invested amounts update successful");
+    return response.data;
+  } catch (error) {
+    console.error("Error in updateDailyInvested:", error);
+    throw error;
+  }
+};
+
+/**
+ * Updates daily dividends
+ */
+export const updateDailyDividends = async () => {
+  try {
+    console.log("Updating daily dividends...");
+    const response = await supabase.rpc("update_daily_dividends");
+    
+    if (response.error) {
+      console.error("Error updating daily dividends:", response.error);
+      throw new Error(`Erreur lors de la mise à jour des dividendes: ${response.error.message}`);
+    }
+    
+    console.log("Daily dividends update successful");
+    return response.data;
+  } catch (error) {
+    console.error("Error in updateDailyDividends:", error);
+    throw error;
+  }
 };
 
 /**
  * Updates all portfolio data in the correct order
  */
 export const updateAllPortfolioData = async () => {
-  // 1. D'abord mettre à jour les prix historiques
-  await updateHistoricalPrices();
-  
-  // 2. Mettre à jour les positions quotidiennes (holdings)
-  await updatePortfolioHoldings();
-  
-  // 3. Mettre à jour les valeurs calculées
-  await updateDailyPortfolioValues();
-  await updateDailyInvested();
-  await updateDailyDividends();
-  
-  return true;
+  try {
+    // 1. D'abord mettre à jour les prix historiques
+    const pricesUpdateResult = await updateHistoricalPrices();
+    console.log("Historical prices update completed:", pricesUpdateResult);
+    
+    // 2. Mettre à jour les positions quotidiennes (holdings)
+    const holdingsUpdateResult = await updatePortfolioHoldings();
+    console.log("Portfolio holdings update completed:", holdingsUpdateResult);
+    
+    // 3. Mettre à jour les valeurs calculées
+    const valuesUpdateResult = await updateDailyPortfolioValues();
+    console.log("Daily portfolio values update completed:", valuesUpdateResult);
+    
+    const investedUpdateResult = await updateDailyInvested();
+    console.log("Daily invested update completed:", investedUpdateResult);
+    
+    const dividendsUpdateResult = await updateDailyDividends();
+    console.log("Daily dividends update completed:", dividendsUpdateResult);
+    
+    return {
+      pricesUpdateResult,
+      holdingsUpdateResult,
+      valuesUpdateResult,
+      investedUpdateResult,
+      dividendsUpdateResult
+    };
+  } catch (error) {
+    console.error("Error updating all portfolio data:", error);
+    throw error;
+  }
 };

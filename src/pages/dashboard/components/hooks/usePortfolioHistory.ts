@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { getLastBusinessDay } from "../utils/dataUtils";
 import { 
   fetchPortfolioValues, 
@@ -24,6 +24,8 @@ export function usePortfolioHistory() {
     data: historyData,
     isLoading,
     refetch,
+    isError,
+    error
   } = useQuery({
     queryKey: ["portfolio-history"],
     queryFn: async () => {
@@ -39,6 +41,30 @@ export function usePortfolioHistory() {
         ]);
 
         console.log(`Fetched portfolio data: ${portfolioValues.length} values, ${investedValues.length} invested values, ${dividendValues.length} dividend values`);
+
+        // Log the latest dates for each data type
+        if (portfolioValues.length > 0) {
+          const latestPortfolioDate = portfolioValues[portfolioValues.length - 1].date;
+          console.log(`Latest portfolio value date: ${latestPortfolioDate}`);
+        }
+        
+        if (investedValues.length > 0) {
+          const latestInvestedDate = investedValues[investedValues.length - 1].date;
+          console.log(`Latest invested value date: ${latestInvestedDate}`);
+        }
+        
+        if (dividendValues.length > 0) {
+          const latestDividendDate = dividendValues[dividendValues.length - 1].date;
+          console.log(`Latest dividend value date: ${latestDividendDate}`);
+        }
+
+        // Check if we have data for the last business day
+        const lastBusinessDayStr = lastBusinessDay.toISOString().split('T')[0];
+        const hasLatestPortfolioData = portfolioValues.some(v => v.date === lastBusinessDayStr);
+        const hasLatestInvestedData = investedValues.some(v => v.date === lastBusinessDayStr);
+        const hasLatestDividendData = dividendValues.some(v => v.date === lastBusinessDayStr);
+        
+        console.log(`Has latest data for ${lastBusinessDayStr}? Portfolio: ${hasLatestPortfolioData}, Invested: ${hasLatestInvestedData}, Dividends: ${hasLatestDividendData}`);
 
         // Process the data
         const chartData = processPortfolioData(
@@ -97,9 +123,16 @@ export function usePortfolioHistory() {
     }
   };
 
+  // Si aucune donnée ou erreur, afficher un message d'erreur détaillé pour aider au débogage
+  if (isError) {
+    console.error("Error in usePortfolioHistory hook:", error);
+  }
+
   return {
     historyData,
     isLoading,
+    isError,
+    error,
     updateHistoricalData,
   };
 }

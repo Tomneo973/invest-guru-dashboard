@@ -5,7 +5,21 @@ import { HistoricalPrice } from "./types";
 export async function getHistoricalPrices(symbol: string): Promise<HistoricalPrice[]> {
   try {
     console.log('Fetching historical prices for:', symbol);
-    // Use the Supabase Cloud function to get the price history
+    
+    // First, try to get data from our database
+    const { data: dbData, error: dbError } = await supabase
+      .from("stock_prices")
+      .select("date, closing_price as price, currency")
+      .eq("symbol", symbol)
+      .order("date", { ascending: true });
+      
+    if (!dbError && dbData && dbData.length > 0) {
+      console.log(`Found ${dbData.length} historical prices in database for ${symbol}`);
+      return dbData as HistoricalPrice[];
+    }
+    
+    // If database fetch fails or returns no data, use the Supabase Cloud function
+    console.log(`No historical prices found in database for ${symbol}, trying API...`);
     const { data, error } = await supabase.functions.invoke('get-historical-prices', {
       body: { symbol, period: '5y', interval: '1mo' }
     });
