@@ -17,7 +17,10 @@ export async function getHistoricalPrices(symbol: string): Promise<HistoricalPri
       console.log(`Found ${dbData.length} historical prices in database for ${symbol}`);
       
       // Type safety: ensure we're working with valid data objects
-      const validData = dbData.filter((item): item is { date: string; price: number; currency?: string } => 
+      // We need to be more specific about the dbData type
+      type StockPriceData = { date: string; price: number; currency?: string };
+      
+      const validData = dbData.filter((item): item is StockPriceData => 
         typeof item === 'object' && 
         item !== null && 
         'date' in item && 
@@ -33,7 +36,8 @@ export async function getHistoricalPrices(symbol: string): Promise<HistoricalPri
         high: item.price,   // We only have closing price, so use it for high too
         low: item.price,    // We only have closing price, so use it for low too
         close: item.price,
-        volume: 0           // Default volume since we don't have this data
+        volume: 0,          // Default volume since we don't have this data
+        currency: item.currency
       }));
     }
     
