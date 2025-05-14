@@ -15,7 +15,15 @@ export async function getHistoricalPrices(symbol: string): Promise<HistoricalPri
       
     if (!dbError && dbData && dbData.length > 0) {
       console.log(`Found ${dbData.length} historical prices in database for ${symbol}`);
-      return dbData as HistoricalPrice[];
+      // Properly transform the database data to match the HistoricalPrice interface
+      return dbData.map(item => ({
+        date: item.date,
+        open: item.price,   // We only have closing price, so use it for open too
+        high: item.price,   // We only have closing price, so use it for high too
+        low: item.price,    // We only have closing price, so use it for low too
+        close: item.price,
+        volume: 0           // Default volume since we don't have this data
+      })) as HistoricalPrice[];
     }
     
     // If database fetch fails or returns no data, use the Supabase Cloud function

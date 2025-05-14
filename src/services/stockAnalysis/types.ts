@@ -1,4 +1,5 @@
 
+
 export interface StockFinancialData {
   symbol: string;
   name: string;
@@ -44,6 +45,8 @@ export interface HistoricalPrice {
   low: number;
   close: number;
   volume: number;
+  price?: number;  // Added for compatibility with database format
+  currency?: string; // Added for compatibility with database format
 }
 
 export interface ScoreDetails {
