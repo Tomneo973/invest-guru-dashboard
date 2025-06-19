@@ -46,7 +46,7 @@ export function PortfolioChart({
   };
 
   const maxValue = getMaxValue();
-  const yAxisDomain = maxValue > 0 ? [0, Math.ceil(maxValue * 1.1)] : [0, 'auto'];
+  const yAxisDomain: [number, number] = maxValue > 0 ? [0, Math.ceil(maxValue * 1.1)] : [0, 100];
 
   return (
     <ResponsiveContainer width="100%" height="100%">
