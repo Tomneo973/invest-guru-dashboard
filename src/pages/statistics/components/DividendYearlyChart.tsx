@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, LabelList } from "recharts";
@@ -47,10 +48,9 @@ export function DividendYearlyChart() {
   const yearlyChartData = Object.values(yearlyDividends || {});
   const currencies = Array.from(new Set(dividends?.map(d => d.currency) || []));
 
-  // Calculer la valeur maximale pour les graduations
+  // Calculer la valeur maximale avec une marge de sécurité de 10%
   const maxValue = Math.max(...(yearlyChartData as any[]).map(d => d.total));
-  const gridStep = maxValue / 10; // Une ligne tous les 10%
-  const majorGridStep = maxValue / 4; // Une ligne plus épaisse tous les 25%
+  const yAxisMax = maxValue * 1.1; // Marge de 10%
 
   return (
     <div className="h-[400px]">
@@ -61,7 +61,6 @@ export function DividendYearlyChart() {
             vertical={false}
             stroke="#e0e0e0"
             strokeWidth={1}
-            className="[&>line]:stroke-[0.5] [&>line[stroke-width='2']]:stroke-1"
           />
           <XAxis 
             dataKey="year"
@@ -71,7 +70,7 @@ export function DividendYearlyChart() {
           <YAxis 
             axisLine={{ stroke: '#666' }}
             tickLine={{ stroke: '#666' }}
-            ticks={Array.from({ length: 11 }, (_, i) => i * gridStep)}
+            domain={[0, yAxisMax]}
             tickFormatter={(value) => value.toFixed(2)}
           />
           <Tooltip 

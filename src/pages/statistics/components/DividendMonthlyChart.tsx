@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, subYears, startOfYear, endOfYear } from "date-fns";
@@ -23,13 +24,22 @@ const periods = [
   { value: "1", label: "1 an" },
   { value: "3", label: "3 ans" },
   { value: "5", label: "5 ans" },
+  { value: "max", label: "Max" },
 ];
 
 export function DividendMonthlyChart() {
   const [selectedPeriod, setSelectedPeriod] = useState("1");
   const currentDate = new Date();
-  const startDate = subYears(startOfYear(currentDate), parseInt(selectedPeriod) - 1);
-  const endDate = endOfYear(currentDate);
+  
+  const getDateRange = () => {
+    if (selectedPeriod === "max") {
+      return { startDate: new Date(0), endDate: endOfYear(currentDate) };
+    }
+    const startDate = subYears(startOfYear(currentDate), parseInt(selectedPeriod) - 1);
+    return { startDate, endDate: endOfYear(currentDate) };
+  };
+
+  const { startDate, endDate } = getDateRange();
 
   const { data: dividends } = useQuery({
     queryKey: ["dividends"],
@@ -67,10 +77,9 @@ export function DividendMonthlyChart() {
   const monthlyChartData = Object.values(monthlyDividends || {});
   const currencies = Array.from(new Set(dividends?.map(d => d.currency) || []));
 
-  // Calculer la valeur maximale pour les graduations
+  // Calculer la valeur maximale avec une marge de sécurité de 10%
   const maxValue = Math.max(...(monthlyChartData as any[]).map(d => d.total));
-  const gridStep = maxValue / 10; // Une ligne tous les 10%
-  const majorGridStep = maxValue / 4; // Une ligne plus épaisse tous les 25%
+  const yAxisMax = maxValue * 1.1; // Marge de 10%
 
   return (
     <div className="space-y-4">
@@ -99,7 +108,6 @@ export function DividendMonthlyChart() {
               vertical={false}
               stroke="#e0e0e0"
               strokeWidth={1}
-              className="[&>line]:stroke-[0.5] [&>line[stroke-width='2']]:stroke-1"
             />
             <XAxis 
               dataKey="month"
@@ -109,7 +117,7 @@ export function DividendMonthlyChart() {
             <YAxis 
               axisLine={{ stroke: '#666' }}
               tickLine={{ stroke: '#666' }}
-              ticks={Array.from({ length: 11 }, (_, i) => i * gridStep)}
+              domain={[0, yAxisMax]}
               tickFormatter={(value) => value.toFixed(2)}
             />
             <Tooltip 
