@@ -4,12 +4,18 @@ import { usePortfolioHistoryFromTransactions } from "./hooks/usePortfolioHistory
 import { TimeRange, useTimeRangeFilter } from "./hooks/useTimeRangeFilter";
 import { ChartContainer } from "./chart/ChartContainer";
 import { PortfolioChart } from "./chart/PortfolioChart";
+import { ChartDataSelector } from "./chart/ChartDataSelector";
 
 export function PortfolioValueChart() {
   const [selectedRange, setSelectedRange] = React.useState<TimeRange>("1m");
   const { historyData, isLoading, updateHistoricalData } = usePortfolioHistoryFromTransactions();
   const [isUpdating, setIsUpdating] = useState(false);
   const startDate = useTimeRangeFilter(selectedRange);
+
+  // États pour contrôler l'affichage des courbes
+  const [showPortfolioValue, setShowPortfolioValue] = useState(true);
+  const [showInvestedValue, setShowInvestedValue] = useState(true);
+  const [showDividends, setShowDividends] = useState(true);
 
   const filteredData = React.useMemo(() => {
     if (!historyData) return [];
@@ -41,16 +47,34 @@ export function PortfolioValueChart() {
   };
 
   return (
-    <ChartContainer
-      title="Évolution du Portfolio"
-      isLoading={isLoading}
-      isUpdating={isUpdating}
-      hasData={filteredData?.length > 0}
-      selectedRange={selectedRange}
-      onRangeChange={setSelectedRange}
-      onUpdate={handleUpdateHistoricalData}
-    >
-      {filteredData?.length > 0 && <PortfolioChart data={filteredData} />}
-    </ChartContainer>
+    <div className="space-y-2">
+      <ChartDataSelector
+        showPortfolioValue={showPortfolioValue}
+        showInvestedValue={showInvestedValue}
+        showDividends={showDividends}
+        onTogglePortfolioValue={setShowPortfolioValue}
+        onToggleInvestedValue={setShowInvestedValue}
+        onToggleDividends={setShowDividends}
+      />
+      
+      <ChartContainer
+        title="Évolution du Portfolio"
+        isLoading={isLoading}
+        isUpdating={isUpdating}
+        hasData={filteredData?.length > 0}
+        selectedRange={selectedRange}
+        onRangeChange={setSelectedRange}
+        onUpdate={handleUpdateHistoricalData}
+      >
+        {filteredData?.length > 0 && (
+          <PortfolioChart 
+            data={filteredData} 
+            showPortfolioValue={showPortfolioValue}
+            showInvestedValue={showInvestedValue}
+            showDividends={showDividends}
+          />
+        )}
+      </ChartContainer>
+    </div>
   );
 }

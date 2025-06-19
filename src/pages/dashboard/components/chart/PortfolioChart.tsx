@@ -15,9 +15,39 @@ import { PortfolioChartTooltip } from "../PortfolioChartTooltip";
 
 interface PortfolioChartProps {
   data: any[];
+  showPortfolioValue: boolean;
+  showInvestedValue: boolean;
+  showDividends: boolean;
 }
 
-export function PortfolioChart({ data }: PortfolioChartProps) {
+export function PortfolioChart({ 
+  data, 
+  showPortfolioValue, 
+  showInvestedValue, 
+  showDividends 
+}: PortfolioChartProps) {
+  // Calculer la valeur maximale pour l'échelle Y en fonction des courbes sélectionnées
+  const getMaxValue = () => {
+    let maxValue = 0;
+    
+    data.forEach(item => {
+      if (showPortfolioValue && item.portfolioValue > maxValue) {
+        maxValue = item.portfolioValue;
+      }
+      if (showInvestedValue && item.investedValue > maxValue) {
+        maxValue = item.investedValue;
+      }
+      if (showDividends && item.cumulativeDividends > maxValue) {
+        maxValue = item.cumulativeDividends;
+      }
+    });
+    
+    return maxValue;
+  };
+
+  const maxValue = getMaxValue();
+  const yAxisDomain = maxValue > 0 ? [0, Math.ceil(maxValue * 1.1)] : [0, 'auto'];
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data}>
@@ -46,42 +76,52 @@ export function PortfolioChart({ data }: PortfolioChartProps) {
           axisLine={{ stroke: '#374151', opacity: 0.2 }}
         />
         <YAxis
+          domain={yAxisDomain}
           tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`}
           stroke="#6B7280"
           tick={{ fill: '#6B7280' }}
           axisLine={{ stroke: '#374151', opacity: 0.2 }}
         />
         <Tooltip content={<PortfolioChartTooltip />} />
-        <Area
-          type="monotone"
-          dataKey="investedValue"
-          stroke="#22c55e"
-          strokeWidth={2}
-          fillOpacity={1}
-          fill="url(#colorInvested)"
-          name="Montant investi"
-          isAnimationActive={false}
-        />
-        <Area
-          type="monotone"
-          dataKey="portfolioValue"
-          stroke="#3b82f6"
-          strokeWidth={2}
-          fillOpacity={1}
-          fill="url(#colorPortfolio)"
-          name="Valeur du portfolio"
-          isAnimationActive={false}
-        />
-        <Area
-          type="monotone"
-          dataKey="cumulativeDividends"
-          stroke="#eab308"
-          strokeWidth={2}
-          fillOpacity={1}
-          fill="url(#colorDividends)"
-          name="Dividendes cumulés"
-          isAnimationActive={false}
-        />
+        
+        {showInvestedValue && (
+          <Area
+            type="monotone"
+            dataKey="investedValue"
+            stroke="#22c55e"
+            strokeWidth={2}
+            fillOpacity={1}
+            fill="url(#colorInvested)"
+            name="Montant investi"
+            isAnimationActive={false}
+          />
+        )}
+        
+        {showPortfolioValue && (
+          <Area
+            type="monotone"
+            dataKey="portfolioValue"
+            stroke="#3b82f6"
+            strokeWidth={2}
+            fillOpacity={1}
+            fill="url(#colorPortfolio)"
+            name="Valeur du portfolio"
+            isAnimationActive={false}
+          />
+        )}
+        
+        {showDividends && (
+          <Area
+            type="monotone"
+            dataKey="cumulativeDividends"
+            stroke="#eab308"
+            strokeWidth={2}
+            fillOpacity={1}
+            fill="url(#colorDividends)"
+            name="Dividendes cumulés"
+            isAnimationActive={false}
+          />
+        )}
       </AreaChart>
     </ResponsiveContainer>
   );
