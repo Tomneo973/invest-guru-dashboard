@@ -53,7 +53,11 @@ export async function fetchUserTransactions(): Promise<Transaction[]> {
   }
 
   console.log(`Fetched ${data?.length || 0} transactions`);
-  return data || [];
+  // Cast le type string en 'buy' | 'sell' pour correspondre à l'interface
+  return (data || []).map(transaction => ({
+    ...transaction,
+    type: transaction.type as 'buy' | 'sell'
+  }));
 }
 
 export async function fetchUserDividends(): Promise<Dividend[]> {
@@ -91,6 +95,24 @@ export async function fetchStockPricesForPeriod(symbols: string[], startDate: st
 
   console.log(`Fetched ${data?.length || 0} stock price records`);
   return data || [];
+}
+
+export async function updateAllPortfolioData(): Promise<void> {
+  console.log("Updating all portfolio data...");
+  try {
+    // Appeler la fonction edge pour mettre à jour les prix historiques
+    const { data, error } = await supabase.functions.invoke('update-historical-prices');
+    
+    if (error) {
+      console.error("Error updating historical prices:", error);
+      throw error;
+    }
+    
+    console.log("Portfolio data updated successfully");
+  } catch (error) {
+    console.error("Error in updateAllPortfolioData:", error);
+    throw error;
+  }
 }
 
 export function calculatePortfolioDataFromHistory(
