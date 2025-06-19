@@ -37,6 +37,15 @@ export interface Score {
   date: string;
 }
 
+export interface ScoreDetails {
+  valueScore: number;
+  growthScore: number;
+  profitabilityScore: number;
+  dividendScore: number;
+  momentumScore: number;
+  fundamentalsScore: number;
+}
+
 export interface HistoricalPrice {
   date: string;
   open: number;
@@ -65,6 +74,35 @@ export interface StockData {
   historical?: HistoricalPrice[];
   financials?: KeyMetric[];
   ratios?: FinancialRatio[];
+}
+
+export interface StockFinancialData {
+  symbol: string;
+  name: string;
+  currentPrice: number;
+  currency: string;
+  eps: number;
+  peRatio: number;
+  forwardPE: number;
+  dividendYield: number;
+  marketCap: number;
+  fiftyTwoWeekHigh: number;
+  fiftyTwoWeekLow: number;
+  fairPrice?: number;
+  sector?: string;
+  industry?: string;
+  bookValue?: number;
+  priceToBook?: number;
+  targetPrice?: number;
+  recommendation?: string;
+  grossMargin?: number;
+  revenueGrowth?: number;
+  interestCoverage?: number;
+  debtToEquity?: number;
+  operatingCashflowToSales?: number;
+  score?: number;
+  scoreDetails?: ScoreDetails;
+  error?: string;
 }
 
 // Interface pour les données de prix stockées dans la base de données
