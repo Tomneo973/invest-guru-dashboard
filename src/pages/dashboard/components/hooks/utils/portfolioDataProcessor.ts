@@ -1,95 +1,96 @@
 
 import { PortfolioHistoryData } from "../api/portfolioDataApi";
 
-/**
- * Processes raw portfolio data into a unified format
- */
-export const processPortfolioData = (
-  portfolioValues: { date: string; total_value: number }[],
-  investedValues: { date: string; total_invested: number }[],
-  dividendValues: { date: string; total_dividends: number }[]
-): PortfolioHistoryData[] => {
-  // Create Maps for each type of data for quick access
-  const valuesByDate = new Map(
-    portfolioValues.map(v => [v.date, v.total_value])
-  );
-  const investedByDate = new Map(
-    investedValues.map(v => [v.date, v.total_invested])
-  );
-  const dividendsByDate = new Map(
-    dividendValues.map(v => [v.date, v.total_dividends])
-  );
-
-  // Get all unique dates
-  const allDates = [...new Set([
-    ...portfolioValues.map(v => v.date),
-    ...investedValues.map(v => v.date),
-    ...dividendValues.map(v => v.date)
-  ])].sort();
-
-  console.log(`Processing data for ${allDates.length} unique dates`);
+export function processPortfolioData(
+  portfolioValues: Array<{ date: string; total_value: number }>,
+  investedValues: Array<{ date: string; total_invested: number }>,
+  dividendValues: Array<{ date: string; total_dividends: number }>
+): PortfolioHistoryData[] {
+  console.log("Processing portfolio data...");
+  console.log(`Input data: ${portfolioValues.length} portfolio, ${investedValues.length} invested, ${dividendValues.length} dividends`);
   
-  // Pour le débogage, voyons les premières et dernières dates
-  if (allDates.length > 0) {
-    console.log(`Date range: ${allDates[0]} to ${allDates[allDates.length - 1]}`);
-  }
-
-  // Generate the data for each date
-  const result = allDates.map(date => {
-    const portfolioValue = valuesByDate.get(date) || 0;
-    const investedValue = investedByDate.get(date) || 0;
-    const cumulativeDividends = dividendsByDate.get(date) || 0;
+  // Create maps for efficient lookup
+  const portfolioMap = new Map(portfolioValues.map(item => [item.date, item.total_value]));
+  const investedMap = new Map(investedValues.map(item => [item.date, item.total_invested]));
+  const dividendMap = new Map(dividendValues.map(item => [item.date, item.total_dividends]));
+  
+  // Get all unique dates and sort them
+  const allDates = new Set([
+    ...portfolioValues.map(item => item.date),
+    ...investedValues.map(item => item.date),
+    ...dividendValues.map(item => item.date)
+  ]);
+  
+  const sortedDates = Array.from(allDates).sort();
+  console.log(`Processing ${sortedDates.length} unique dates from ${sortedDates[0]} to ${sortedDates[sortedDates.length - 1]}`);
+  
+  // Forward fill missing values
+  let lastPortfolioValue = 0;
+  let lastInvestedValue = 0;
+  let lastDividendValue = 0;
+  
+  const processedData: PortfolioHistoryData[] = [];
+  
+  for (const date of sortedDates) {
+    // Update values if available, otherwise use last known values
+    if (portfolioMap.has(date)) {
+      lastPortfolioValue = portfolioMap.get(date)!;
+    }
+    if (investedMap.has(date)) {
+      lastInvestedValue = investedMap.get(date)!;
+    }
+    if (dividendMap.has(date)) {
+      lastDividendValue = dividendMap.get(date)!;
+    }
     
-    return {
-      date,
-      portfolioValue,
-      investedValue,
-      cumulativeDividends
-    };
-  });
-  
-  console.log(`Generated ${result.length} portfolio history data points`);
-  
-  return result;
-};
-
-/**
- * Checks and logs any anomalous data points
- */
-export const checkForAnomalies = (chartData: PortfolioHistoryData[]): void => {
-  if (!chartData || chartData.length === 0) {
-    console.warn("No data to check for anomalies");
-    return;
+    // Only add data points where we have meaningful values
+    if (lastPortfolioValue > 0 || lastInvestedValue > 0) {
+      processedData.push({
+        date,
+        portfolioValue: lastPortfolioValue,
+        investedValue: lastInvestedValue,
+        cumulativeDividends: lastDividendValue
+      });
+    }
   }
   
-  const anomalies = chartData.filter(item => {
-    // Negative values
-    if (item.portfolioValue < 0) return true;
-    
-    // Zero values only if invested value is positive
-    if (item.portfolioValue === 0 && item.investedValue > 0) return true;
-    
-    // Abnormally high values compared to invested value
-    if (item.investedValue > 0 && item.portfolioValue > item.investedValue * 5) return true;
-    
-    // Abnormally low values compared to invested value
-    if (item.investedValue > 0 && item.portfolioValue < item.investedValue * 0.2) return true;
-    
-    return false;
-  });
+  console.log(`Processed data contains ${processedData.length} valid points`);
+  
+  if (processedData.length > 0) {
+    const firstPoint = processedData[0];
+    const lastPoint = processedData[processedData.length - 1];
+    console.log(`First point: ${firstPoint.date} - Portfolio: ${firstPoint.portfolioValue}, Invested: ${firstPoint.investedValue}`);
+    console.log(`Last point: ${lastPoint.date} - Portfolio: ${lastPoint.portfolioValue}, Invested: ${lastPoint.investedValue}`);
+  }
+  
+  return processedData;
+}
+
+export function checkForAnomalies(data: PortfolioHistoryData[]) {
+  if (data.length === 0) return;
+  
+  const anomalies = data.filter(point => 
+    point.portfolioValue === 0 && point.investedValue > 0
+  );
   
   if (anomalies.length > 0) {
-    console.warn(`Found ${anomalies.length} anomalous data points:`, anomalies);
-  } else {
-    console.log("No anomalies detected in the data");
+    console.warn(`Found ${anomalies.length} potential anomalies (portfolio value = 0 but invested > 0)`);
+    console.log("Sample anomalies:", anomalies.slice(0, 3));
   }
   
-  // Vérifiez également si les dernières données sont à jour
-  const mostRecentDate = new Date(chartData[chartData.length - 1].date);
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  
-  if (mostRecentDate < threeDaysAgo) {
-    console.warn(`Latest data point is from ${mostRecentDate.toISOString().split('T')[0]}, which is more than 3 days old`);
+  // Check for large jumps that might indicate data issues
+  for (let i = 1; i < data.length; i++) {
+    const prev = data[i - 1];
+    const curr = data[i];
+    
+    const portfolioChange = Math.abs(curr.portfolioValue - prev.portfolioValue) / Math.max(prev.portfolioValue, 1);
+    const investedChange = Math.abs(curr.investedValue - prev.investedValue) / Math.max(prev.investedValue, 1);
+    
+    if (portfolioChange > 0.5 || investedChange > 0.5) {
+      console.warn(`Large change detected between ${prev.date} and ${curr.date}:`, {
+        portfolioChange: `${(portfolioChange * 100).toFixed(1)}%`,
+        investedChange: `${(investedChange * 100).toFixed(1)}%`
+      });
+    }
   }
-};
+}

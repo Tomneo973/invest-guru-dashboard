@@ -27,7 +27,7 @@ export function usePortfolioHistory() {
     isError,
     error
   } = useQuery({
-    queryKey: ["portfolio-history"],
+    queryKey: ["portfolio-history", lastBusinessDay.toISOString().split('T')[0]],
     queryFn: async () => {
       try {
         console.log("Fetching portfolio history data...");
@@ -58,13 +58,12 @@ export function usePortfolioHistory() {
           console.log(`Latest dividend value date: ${latestDividendDate}`);
         }
 
-        // Check if we have data for the last business day
+        // Check if we have recent data
         const lastBusinessDayStr = lastBusinessDay.toISOString().split('T')[0];
-        const hasLatestPortfolioData = portfolioValues.some(v => v.date === lastBusinessDayStr);
-        const hasLatestInvestedData = investedValues.some(v => v.date === lastBusinessDayStr);
-        const hasLatestDividendData = dividendValues.some(v => v.date === lastBusinessDayStr);
+        const hasRecentData = portfolioValues.some(v => v.date >= lastBusinessDayStr) ||
+                             investedValues.some(v => v.date >= lastBusinessDayStr);
         
-        console.log(`Has latest data for ${lastBusinessDayStr}? Portfolio: ${hasLatestPortfolioData}, Invested: ${hasLatestInvestedData}, Dividends: ${hasLatestDividendData}`);
+        console.log(`Has recent data for ${lastBusinessDayStr}? ${hasRecentData}`);
 
         // Process the data
         const chartData = processPortfolioData(
@@ -76,7 +75,7 @@ export function usePortfolioHistory() {
         console.log(`Generated ${chartData.length} chart data points`);
         if (chartData.length > 0) {
           const lastDataPoint = chartData[chartData.length - 1];
-          console.log(`Last data point: date = ${lastDataPoint.date}, value = ${lastDataPoint.portfolioValue}`);
+          console.log(`Last data point: date = ${lastDataPoint.date}, portfolio = ${lastDataPoint.portfolioValue}, invested = ${lastDataPoint.investedValue}`);
         }
         
         // Check for anomalies
@@ -88,6 +87,8 @@ export function usePortfolioHistory() {
         throw error;
       }
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const updateHistoricalData = async () => {
@@ -100,7 +101,7 @@ export function usePortfolioHistory() {
       
       console.log("Starting update of historical data...");
       
-      // Update all portfolio data in the correct order
+      // Update all portfolio data
       await updateAllPortfolioData();
       
       console.log("All portfolio data updated successfully");
@@ -111,7 +112,7 @@ export function usePortfolioHistory() {
 
       toast({
         title: "Mise à jour réussie",
-        description: "Les données historiques ont été mises à jour avec succès jusqu'au dernier jour ouvré.",
+        description: "Les données historiques ont été mises à jour avec succès.",
       });
     } catch (error) {
       console.error("Error updating historical data:", error);
